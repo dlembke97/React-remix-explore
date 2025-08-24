@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link, json, useLoaderData } from 'react-router';
+import { Link, useLoaderData } from 'react-router';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import { PageHeader, Table, Button } from 'antd';
+import { Table, Button } from 'antd';
+import PageHeader from '../components/PageHeader';
 
 import type { TriangleRow } from '../data/triangles';
 import { getTriangles } from '../data/triangles';
@@ -10,7 +11,7 @@ import { getTriangles } from '../data/triangles';
 export const meta = () => [{ title: 'Triangles' }];
 
 export function loader() {
-  return json({ triangles: getTriangles() });
+  return Response.json({ triangles: getTriangles() });
 }
 
 export default function Triangles() {

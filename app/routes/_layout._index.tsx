@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { PageHeader } from 'antd';
+import PageHeader from '../components/PageHeader';
+
 
 export const meta = () => [{ title: 'Dashboard' }];
 
