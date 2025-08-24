@@ -1,7 +1,13 @@
-import { Link } from 'react-router';
+import { Link, json } from 'react-router';
 import { PageHeader } from 'antd';
 
+import { getTriangles } from '../data/triangles';
+
 export const meta = () => [{ title: 'Triangles' }];
+
+export function loader() {
+  return json({ triangles: getTriangles() });
+}
 
 export default function Triangles() {
   return (
