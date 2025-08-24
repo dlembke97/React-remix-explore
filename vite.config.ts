@@ -5,5 +5,9 @@ import tailwind from '@tailwindcss/vite'; // keep only if you’re using Tailwin
 
 export default defineConfig({
   plugins: [reactRouter(), tsconfigPaths(), tailwind()],
-  test: { environment: 'jsdom' },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./test/setup.ts'],
+    globals: true,
+  },
 });
