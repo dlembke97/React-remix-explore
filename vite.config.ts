@@ -1,14 +1,11 @@
-import { reactRouter } from '@react-router/dev/vite';
-import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from "vite";
+import { reactRouter as react } from "@react-router/dev/vite"; // IMPORTANT: framework plugin
+import tsconfigPaths from "vite-tsconfig-paths";
+import tailwind from "@tailwindcss/vite"; // keep if we are using Tailwind
 
-export default defineConfig(() => ({
-  plugins: process.env.VITEST
-    ? [tsconfigPaths()]
-    : [tailwindcss(), reactRouter(), tsconfigPaths()],
+export default defineConfig({
+  plugins: [react(), tsconfigPaths(), tailwind()],
   test: {
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
-  },
-}));
+    environment: "jsdom"
+  }
+});
