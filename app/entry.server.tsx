@@ -1,24 +1,33 @@
-import type { ServerBuild } from "react-router";
-import { StartServer } from "@react-router/dev/start";
-import { renderToString } from "react-dom/server";
+import { PassThrough } from "node:stream";
+import type { EntryContext } from "react-router";
+import { ServerRouter } from "react-router";
+import { renderToPipeableStream } from "react-dom/server";
+import { createReadableStreamFromReadable } from "@react-router/node";
 
 export default function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
-  routerContext: ServerBuild
+  routerContext: EntryContext
 ) {
-  const body = renderToString(
-    <StartServer
-      request={request}
-      statusCode={responseStatusCode}
-      routerContext={routerContext}
-    />
-  );
+  return new Promise((resolve, reject) => {
+    const { pipe, abort } = renderToPipeableStream(
+      <ServerRouter context={routerContext} url={request.url} />,
+      {
+        onShellReady() {
+          responseHeaders.set("Content-Type", "text/html");
+          const body = new PassThrough();
+          const stream = createReadableStreamFromReadable(body);
+          resolve(new Response(stream, { headers: responseHeaders, status: responseStatusCode }));
+          pipe(body);
+        },
+        onShellError(error) {
+          reject(error);
+        },
+      }
+    );
 
-  responseHeaders.set("Content-Type", "text/html");
-  return new Response(`<!DOCTYPE html>${body}`, {
-    status: responseStatusCode,
-    headers: responseHeaders,
+    // (optional) abort after some timeout
+    setTimeout(abort, 10000);
   });
 }
