@@ -16,7 +16,9 @@ export function loader() {
 
 export default function Triangles() {
   const { triangles } = useLoaderData<typeof loader>();
-  const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>({});
+  const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>(
+    {},
+  );
 
   const handleChange: TableProps<TriangleRow>['onChange'] = (_, __, sorter) => {
     if (!Array.isArray(sorter)) {
@@ -43,14 +45,7 @@ export default function Triangles() {
   }, [triangles, sortedInfo]);
 
   const handleExport = () => {
-    const headers = [
-      'Portfolio',
-      'LOB',
-      'AY',
-      'Dev (m)',
-      'Paid',
-      'Incurred',
-    ];
+    const headers = ['Portfolio', 'LOB', 'AY', 'Dev (m)', 'Paid', 'Incurred'];
     const rows = dataToExport.map((r) => [
       r.portfolio,
       r.lob,

@@ -47,4 +47,3 @@ export function getTriangles(): TriangleRow[] {
 
   return rows;
 }
-

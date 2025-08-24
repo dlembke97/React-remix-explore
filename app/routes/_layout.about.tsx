@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 import PageHeader from '../components/PageHeader';
 
-
 export const meta = () => [{ title: 'About' }];
 
 export default function About() {
