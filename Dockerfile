@@ -2,13 +2,13 @@
 FROM node:20-alpine AS dev-deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # --- deps (prod) ---
 FROM node:20-alpine AS prod-deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 # --- build ---
 FROM node:20-alpine AS build
