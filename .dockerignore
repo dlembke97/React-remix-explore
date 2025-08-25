@@ -1,4 +1,12 @@
-.react-router
-build
 node_modules
-README.md
+.vscode
+.git
+.gitignore
+npm-debug.log*
+Dockerfile
+docker-compose*.yml
+.vite
+.react-router
+dist
+build/client/.vite
+.env
