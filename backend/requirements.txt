@@ -1,0 +1,4 @@
+fastapi==0.115.4
+uvicorn[standard]==0.30.6
+pandas>=2.0
+chainladder>=0.8.24
