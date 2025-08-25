@@ -1,22 +1,33 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
+# --- deps (dev) ---
+FROM node:20-alpine AS dev-deps
 WORKDIR /app
+COPY package*.json ./
 RUN npm ci
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+# --- deps (prod) ---
+FROM node:20-alpine AS prod-deps
 WORKDIR /app
+COPY package*.json ./
 RUN npm ci --omit=dev
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+# --- build ---
+FROM node:20-alpine AS build
 WORKDIR /app
+COPY . .
+COPY --from=dev-deps /app/node_modules ./node_modules
 RUN npm run build
 
+# --- runtime ---
 FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
+ENV NODE_ENV=production
+ENV PORT=3000
 WORKDIR /app
+COPY package*.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/build ./build
+
+RUN addgroup -S app && adduser -S app -G app
+USER app
+
+EXPOSE 3000
 CMD ["npm", "run", "start"]
