@@ -141,3 +141,31 @@ Open http://localhost:3001. Map to another host port if 3000 is taken (`-p 5000:
 - **Husky:** git hooks manager for formatting/linting before commits.
 - **Vitest:** test runner similar to Jest.
 - **AntD:** Ant Design, a React UI component library.
+
+## Backend (FastAPI) & Frontend Connection
+
+1. **Start the backend on port 8000**
+   ```powershell
+   cd backend
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --port 8000
+   ```
+2. **Enable the backend in the front end**
+   ```powershell
+   copy .env.example .env
+   ```
+   Edit `.env` if the backend runs on a different port.
+3. **What the upload does**
+   - Triangles page uploads a CSV as `multipart/form-data`.
+   - Request hits `POST /summary/ay-sum`.
+   - Response is JSON with `accidentYear` and summed `paid` values.
+4. **Expected CSV columns**
+   - `accidentYear`
+   - `paid`
+   - (other columns are ignored)
+5. **Troubleshooting**
+   - CORS errors: ensure the backend allows `http://localhost:5173`.
+   - Missing columns: check CSV headers match `accidentYear`/`paid`.
+   - Port already in use: choose another port and update `.env`.
