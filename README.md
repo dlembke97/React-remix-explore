@@ -2,21 +2,24 @@
 
 ## 1) What this is (high level)
 
-A demo web app built with React Router v7, TypeScript, Vite and Ant Design. Routing is "Remix-style": the file structure under `app/` defines the URL paths via `@react-router/dev/vite`. The project currently exposes three pages:
+A demo web app built with React Router v7, TypeScript, Vite and Ant Design. Routing is "Remix-style": the file structure under `app/` defines the URL paths via `@react-router/dev/vite`. A lightweight FastAPI backend lives under `backend/` to serve triangle calculations. The project currently exposes three pages:
 
 - **Dashboard** – `app/routes/_layout._index.tsx`
 - **Triangles** – `app/routes/_layout.triangles.tsx`
 - **About** – `app/routes/_layout.about.tsx`
 
-The Triangles page pulls dummy loss-triangle data from a loader function. No real back end or database is involved.
+The Triangles page pulls dummy loss-triangle data from a loader function. API endpoints exist for future triangle operations, but the UI still uses the in-memory dummy data.
 
 ## 2) Quick start (Windows/PowerShell friendly)
 
-Prerequisite: **Node 20+**.
+Prerequisites: **Node 20+** and **Python 3.11+**.
 
 ```powershell
-npm ci       # install deps
-npm run dev  # start dev server
+npm ci                       # install frontend deps
+npm run dev                  # start React dev server
+# in another terminal for the API
+pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload
 ```
 
 The dev server prints a URL (typically http://localhost:5173). Open it in your browser. Stop the server with `Ctrl+C`.
@@ -27,7 +30,7 @@ To change the port, set `PORT` before starting:
 $env:PORT=3001; npm run dev
 ```
 
-Build and run a production bundle locally:
+Build and run a production bundle locally (frontend only):
 
 ```powershell
 npm run build
@@ -50,6 +53,7 @@ npm start
 - **package.json** – scripts and dependencies.
 - **Dockerfile** / **.dockerignore** – container setup.
 - **.github/workflows/ci.yml** – GitHub Actions workflow: install deps, lint, typecheck, build, test.
+- **backend/** – FastAPI app and Python requirements.
 
 ## 4) Scripts
 
@@ -107,14 +111,14 @@ To verify production locally, run `npm run build` then `npm start` and visit `ht
 
 ```bash
 docker build -t reserving-app .
-docker run --rm -p 3001:3000 reserving-app
+docker run --rm -p 3001:3000 -p 8001:8000 reserving-app
 ```
 
-Open http://localhost:3001. Map to another host port if 3000 is taken (`-p 5000:3000`).
+Open http://localhost:3001 for the React app and http://localhost:8001 for the API. Map to other host ports if the defaults are taken.
 
 ## 9) CI
 
-`.github/workflows/ci.yml` runs on pushes and pull requests: checkout → `npm ci --ignore-scripts` → lint → typecheck → build → test.
+`.github/workflows/ci.yml` runs on pushes and pull requests: checkout → `npm ci --ignore-scripts` → lint → typecheck → build → test → `pip install` + Python byte-compile.
 
 ## 10) Common issues & fixes
 
