@@ -11,7 +11,7 @@ import { getTriangles } from '../data/triangles';
 export const meta = () => [{ title: 'Triangles' }];
 
 export function loader() {
-  return Response.json({ triangles: getTriangles() });
+  return { triangles: getTriangles() };
 }
 
 export default function Triangles() {
