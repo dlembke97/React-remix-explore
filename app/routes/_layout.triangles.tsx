@@ -7,7 +7,6 @@ import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
 
 import type { TriangleRow } from '../data/triangles';
-import { getTriangles } from '../data/triangles';
 
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
@@ -20,7 +19,7 @@ const API = baked ?? runtimeGuess;
 export const meta = () => [{ title: 'Triangles' }];
 
 export function loader() {
-  return Response.json({ triangles: getTriangles() });
+  return Response.json({ triangles: [] });
 }
 
 export default function Triangles() {
