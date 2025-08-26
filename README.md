@@ -169,3 +169,17 @@ Open http://localhost:3001. Map to another host port if 3000 is taken (`-p 5000:
    - CORS errors: ensure the backend allows `http://localhost:5173`.
    - Missing columns: check CSV headers match `accidentYear`/`paid`.
    - Port already in use: choose another port and update `.env`.
+
+## Docker only
+
+To run both frontend and backend via Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+- Frontend: http://localhost:3001
+- Backend: http://localhost:8000
+- Inside Docker, the frontend talks to the backend through `VITE_API_BASE_URL=http://backend:8000`.
+- For local development without Docker, use the "Quick start" and "Backend (FastAPI) & Frontend Connection" steps above.
+
