@@ -22,6 +22,35 @@ export function loader() {
   return Response.json({ triangles: [] });
 }
 
+export const parseTrianglesCsv = (text: string): TriangleRow[] => {
+  const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+  const headers = headerLine.split(',').map((h) => h.trim());
+
+  const findIndex = (name: string) => headers.indexOf(name);
+  const ayIdx = findIndex('accidentYear');
+  const devIdx = findIndex('dev');
+  const paidIdx = findIndex('paid');
+  if (ayIdx === -1 || devIdx === -1 || paidIdx === -1) {
+    throw new Error('Missing required columns');
+  }
+
+  const portfolioIdx = findIndex('portfolio');
+  const lobIdx = findIndex('lob');
+  const incurredIdx = findIndex('incurred');
+
+  return lines.filter(Boolean).map((line) => {
+    const cols = line.split(',').map((c) => c.trim());
+    return {
+      portfolio: portfolioIdx > -1 ? cols[portfolioIdx] : '',
+      lob: lobIdx > -1 ? cols[lobIdx] : '',
+      accidentYear: Number(cols[ayIdx]),
+      dev: Number(cols[devIdx]),
+      paid: Number(cols[paidIdx]),
+      incurred: incurredIdx > -1 ? Number(cols[incurredIdx]) : 0,
+    };
+  });
+};
+
 export default function Triangles() {
   const { triangles: initialTriangles } = useLoaderData<typeof loader>();
   const [triangles, setTriangles] =
@@ -123,33 +152,6 @@ export default function Triangles() {
       render: (v: number) => v.toLocaleString(),
     },
   ];
-
-  const parseTrianglesCsv = (text: string): TriangleRow[] => {
-    const [headerLine, ...lines] = text.trim().split(/\r?\n/);
-    const headers = headerLine.split(',').map((h) => h.trim());
-    const required = [
-      'portfolio',
-      'lob',
-      'accidentYear',
-      'dev',
-      'paid',
-      'incurred',
-    ];
-    if (!required.every((h) => headers.includes(h))) {
-      throw new Error('Missing required columns');
-    }
-    return lines.filter(Boolean).map((line) => {
-      const cols = line.split(',').map((c) => c.trim());
-      return {
-        portfolio: cols[headers.indexOf('portfolio')],
-        lob: cols[headers.indexOf('lob')],
-        accidentYear: Number(cols[headers.indexOf('accidentYear')]),
-        dev: Number(cols[headers.indexOf('dev')]),
-        paid: Number(cols[headers.indexOf('paid')]),
-        incurred: Number(cols[headers.indexOf('incurred')]),
-      };
-    });
-  };
 
   const handleUpload = async (file: File) => {
     setUploading(true);
