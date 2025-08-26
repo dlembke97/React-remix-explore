@@ -1,7 +1,6 @@
 import {
   isRouteErrorResponse,
   Links,
-  Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -50,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         {/* Optional but nice-to-have theme colors */}
         <meta name="theme-color" content="#1677ff" />
-        <Meta />
+        <title>Reserving App</title>
         <Links />
       </head>
       <body>

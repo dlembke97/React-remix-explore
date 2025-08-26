@@ -40,9 +40,11 @@ npm run build
 npm start     # serves ./build
 ```
 
+This only serves the frontend bundle. Start the FastAPI server from step 2 in a separate terminal so CSV uploads still work.
+
 ### 5. Docker build
 
-Build and run the frontend and backend containers separately:
+Build and run the frontend and backend containers separately (useful if you want to run one without the other):
 
 ```bash
 # backend
@@ -58,11 +60,13 @@ docker run --rm -p 3000:3000 reserving-frontend
 
 ### 6. Docker compose
 
+To build and run both containers together:
+
 ```bash
 docker compose up --build
 ```
 
-Frontend: `http://localhost:3001` • Backend: `http://localhost:8000`.
+That's the only command you need—`docker compose` will build images if missing and start both services. After startup the frontend is at `http://localhost:3001` and the backend at `http://localhost:8000`.
 
 ## Scripts
 
