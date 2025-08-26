@@ -141,3 +141,46 @@ Open http://localhost:3001. Map to another host port if 3000 is taken (`-p 5000:
 - **Husky:** git hooks manager for formatting/linting before commits.
 - **Vitest:** test runner similar to Jest.
 - **AntD:** Ant Design, a React UI component library.
+
+## Backend (FastAPI) & Frontend Connection
+
+1. **Start the backend on port 8000**
+   ```powershell
+   cd backend
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --port 8000
+   ```
+2. **Enable the backend in the front end**
+   ```powershell
+   copy .env.example .env
+   ```
+   Edit `.env` if the backend runs on a different port.
+3. **What the upload does**
+   - Triangles page uploads a CSV as `multipart/form-data`.
+   - Request hits `POST /summary/ay-sum`.
+   - Response is JSON with `accidentYear` and summed `paid` values.
+4. **Expected CSV columns**
+   - `accidentYear`
+   - `paid`
+   - (other columns are ignored)
+5. **Troubleshooting**
+   - CORS errors: ensure the backend allows your frontend origin (e.g., `http://localhost:5173` for `npm run dev`, `http://localhost:3000` for `npm start`, or `http://localhost:3001` via Docker).
+   - Missing columns: check CSV headers match `accidentYear`/`paid`.
+   - Port already in use: choose another port and update `.env`.
+
+## Docker only
+
+To run both frontend and backend via Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+- Frontend: http://localhost:3001
+- Backend: http://localhost:8000
+- Inside Docker, the frontend talks to the backend through `VITE_API_BASE_URL=http://backend:8000`.
+- `VITE_API_BASE_URL` is baked into the frontend at build time via Compose build args.
+- If you change the backend address, rerun `docker compose up --build`.
+- For local development without Docker, use the "Quick start" and "Backend (FastAPI) & Frontend Connection" steps above.

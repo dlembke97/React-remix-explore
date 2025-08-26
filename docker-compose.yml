@@ -1,0 +1,29 @@
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: 'http://localhost:8000' # <-- change from backend:8000
+    container_name: reserving-frontend
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    # (Optional) remove this — Vite doesn't read VITE_* at runtime:
+    # - VITE_API_BASE_URL=http://backend:8000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: reserving-backend
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Optional clarity (CORS allow your browser origin)
+      - ALLOWED_ORIGINS=http://localhost:3000
+    ports:
+      - '8000:8000'
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
