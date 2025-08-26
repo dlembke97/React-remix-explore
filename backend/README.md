@@ -1,33 +1,31 @@
 # Reserving API (FastAPI)
 
-## Setup (Windows PowerShell)
+Small FastAPI app that powers CSV-processing features for the React frontend.
 
-```powershell
+## Run locally
+
+```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate
+. .venv/bin/activate    # On Windows use .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Visit http://localhost:8000/docs to try the /summary/ay-sum endpoint.
+Visit <http://localhost:8000/docs> to try the endpoints.
 
-Endpoint: POST /summary/ay-sum
+## Docker build
 
-form-data:
+```bash
+docker build -t reserving-backend .
+docker run --rm -p 8000:8000 reserving-backend
+```
 
-file (CSV file)
+Use `-e ALLOWED_ORIGINS=http://localhost:3000` to set CORS origins if needed.
 
-ay_col (default accidentYear)
+## Structure
 
-value_col (default paid)
+- `app/main.py` – creates the FastAPI app and includes routers.
+- `app/routers/summary.py` – `/summary/ay-sum` endpoint. Upload a CSV and get accident year sums.
 
-response:
-
-{
-"ok": true,
-"results": [
-{ "accidentYear": 2019, "sum": 12345.0 },
-{ "accidentYear": 2020, "sum": 67890.0 }
-]
-}
+Add new endpoints by creating additional files in `app/routers/` and including them in `app/main.py`.
