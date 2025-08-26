@@ -214,41 +214,49 @@ export default function Triangles() {
                 Upload Data
               </Button>
             </Upload>
-            <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              Export CSV
-            </Button>
+            {triangles.length > 0 && (
+              <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                Export CSV
+              </Button>
+            )}
           </Space>
         }
       />
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Table
-          columns={columns}
-          dataSource={triangles}
-          onChange={handleChange}
-          rowKey={(r) => `${r.portfolio}-${r.lob}-${r.accidentYear}-${r.dev}`}
-          pagination={{ pageSize: 20 }}
-          sticky
-          scroll={{ x: 'max-content', y: 600 }}
-        />
+        {triangles.length > 0 && (
+          <>
+            <Table
+              columns={columns}
+              dataSource={triangles}
+              onChange={handleChange}
+              rowKey={(r) =>
+                `${r.portfolio}-${r.lob}-${r.accidentYear}-${r.dev}`
+              }
+              pagination={{ pageSize: 20 }}
+              sticky
+              scroll={{ x: 'max-content', y: 600 }}
+            />
 
-        {aySum.length > 0 && (
-          <Table
-            title={() => 'AY Sum'}
-            style={{ marginTop: 16 }}
-            size="small"
-            pagination={false}
-            rowKey={(r) => String(r.accidentYear)}
-            columns={[
-              { title: 'Accident Year', dataIndex: 'accidentYear' },
-              {
-                title: 'Sum (paid)',
-                dataIndex: 'sum',
-                render: (v: number) => v.toLocaleString(),
-              },
-            ]}
-            dataSource={aySum}
-          />
+            {aySum.length > 0 && (
+              <Table
+                title={() => 'AY Sum'}
+                style={{ marginTop: 16 }}
+                size="small"
+                pagination={false}
+                rowKey={(r) => String(r.accidentYear)}
+                columns={[
+                  { title: 'Accident Year', dataIndex: 'accidentYear' },
+                  {
+                    title: 'Sum (paid)',
+                    dataIndex: 'sum',
+                    render: (v: number) => v.toLocaleString(),
+                  },
+                ]}
+                dataSource={aySum}
+              />
+            )}
+          </>
         )}
       </Space>
     </div>
