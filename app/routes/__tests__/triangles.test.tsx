@@ -28,25 +28,11 @@ describe('Triangles', () => {
     ).toBeInTheDocument();
   });
 
-  it('parses minimal accidentYear-dev-paid dataset', () => {
-    const csv = `accidentYear,dev,paid\n2020,1,1000\n2021,2,1500`;
+  it('parses arbitrary dataset without enforcing headers', () => {
+    const csv = `foo,bar\n1,baz\n2,qux`;
     expect(parseTrianglesCsv(csv)).toEqual([
-      {
-        portfolio: '',
-        lob: '',
-        accidentYear: 2020,
-        dev: 1,
-        paid: 1000,
-        incurred: 0,
-      },
-      {
-        portfolio: '',
-        lob: '',
-        accidentYear: 2021,
-        dev: 2,
-        paid: 1500,
-        incurred: 0,
-      },
+      { foo: 1, bar: 'baz' },
+      { foo: 2, bar: 'qux' },
     ]);
   });
 });

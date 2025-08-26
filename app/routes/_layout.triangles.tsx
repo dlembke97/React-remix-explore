@@ -1,12 +1,11 @@
 import React from 'react';
 import { Link, useLoaderData } from 'react-router';
-import type { ColumnsType, TableProps } from 'antd/es/table';
-import type { SorterResult } from 'antd/es/table/interface';
+import type { ColumnsType } from 'antd/es/table';
 import { Table, Button, Upload, Space, message } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
 
-import type { TriangleRow } from '../data/triangles';
+export type CsvRow = Record<string, string | number>;
 
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
@@ -22,82 +21,36 @@ export function loader() {
   return Response.json({ triangles: [] });
 }
 
-export const parseTrianglesCsv = (text: string): TriangleRow[] => {
+export const parseTrianglesCsv = (text: string): CsvRow[] => {
   const [headerLine, ...lines] = text.trim().split(/\r?\n/);
   const headers = headerLine.split(',').map((h) => h.trim());
 
-  const findIndex = (name: string) => headers.indexOf(name);
-  const ayIdx = findIndex('accidentYear');
-  const devIdx = findIndex('dev');
-  const paidIdx = findIndex('paid');
-  if (ayIdx === -1 || devIdx === -1 || paidIdx === -1) {
-    throw new Error('Missing required columns');
-  }
-
-  const portfolioIdx = findIndex('portfolio');
-  const lobIdx = findIndex('lob');
-  const incurredIdx = findIndex('incurred');
-
   return lines.filter(Boolean).map((line) => {
     const cols = line.split(',').map((c) => c.trim());
-    return {
-      portfolio: portfolioIdx > -1 ? cols[portfolioIdx] : '',
-      lob: lobIdx > -1 ? cols[lobIdx] : '',
-      accidentYear: Number(cols[ayIdx]),
-      dev: Number(cols[devIdx]),
-      paid: Number(cols[paidIdx]),
-      incurred: incurredIdx > -1 ? Number(cols[incurredIdx]) : 0,
-    };
+    const row: CsvRow = {};
+    headers.forEach((h, i) => {
+      const value = cols[i] ?? '';
+      const num = Number(value);
+      row[h] = value === '' || Number.isNaN(num) ? value : num;
+    });
+    return row;
   });
 };
 
 export default function Triangles() {
   const { triangles: initialTriangles } = useLoaderData<typeof loader>();
-  const [triangles, setTriangles] =
-    React.useState<TriangleRow[]>(initialTriangles);
-  const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>(
-    {},
-  );
+  const [rows, setRows] = React.useState<CsvRow[]>(initialTriangles);
+  const [columns, setColumns] = React.useState<ColumnsType<CsvRow>>([]);
   const [aySum, setAySum] = React.useState<
     Array<{ accidentYear: number | string; sum: number }>
   >([]);
   const [uploading, setUploading] = React.useState(false);
 
-  const handleChange: TableProps<TriangleRow>['onChange'] = (_, __, sorter) => {
-    if (!Array.isArray(sorter)) {
-      setSortedInfo(sorter);
-    }
-  };
-
-  const dataToExport: TriangleRow[] = React.useMemo(() => {
-    if (
-      sortedInfo &&
-      !Array.isArray(sortedInfo) &&
-      sortedInfo.order &&
-      sortedInfo.field
-    ) {
-      const field = sortedInfo.field as keyof TriangleRow;
-      const sorted = [...triangles].sort((a, b) => {
-        const aVal = a[field] as number;
-        const bVal = b[field] as number;
-        return sortedInfo.order === 'ascend' ? aVal - bVal : bVal - aVal;
-      });
-      return sorted;
-    }
-    return triangles;
-  }, [triangles, sortedInfo]);
-
   const handleExport = () => {
-    const headers = ['Portfolio', 'LOB', 'AY', 'Dev (m)', 'Paid', 'Incurred'];
-    const rows = dataToExport.map((r) => [
-      r.portfolio,
-      r.lob,
-      r.accidentYear,
-      r.dev,
-      r.paid,
-      r.incurred,
-    ]);
-    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
+    if (rows.length === 0) return;
+    const headers = columns.map((c) => String(c.title));
+    const csvRows = rows.map((r) => headers.map((h) => r[h] ?? '').join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -107,80 +60,44 @@ export default function Triangles() {
     URL.revokeObjectURL(url);
   };
 
-  const columns: ColumnsType<TriangleRow> = [
-    {
-      title: 'Portfolio',
-      dataIndex: 'portfolio',
-      key: 'portfolio',
-      width: 120,
-    },
-    { title: 'LOB', dataIndex: 'lob', key: 'lob', width: 120 },
-    {
-      title: 'AY',
-      dataIndex: 'accidentYear',
-      key: 'accidentYear',
-      width: 90,
-      sorter: (a, b) => a.accidentYear - b.accidentYear,
-      sortOrder:
-        !Array.isArray(sortedInfo) && sortedInfo.field === 'accidentYear'
-          ? sortedInfo.order
-          : null,
-    },
-    {
-      title: 'Dev (m)',
-      dataIndex: 'dev',
-      key: 'dev',
-      width: 90,
-      sorter: (a, b) => a.dev - b.dev,
-      sortOrder:
-        !Array.isArray(sortedInfo) && sortedInfo.field === 'dev'
-          ? sortedInfo.order
-          : null,
-    },
-    {
-      title: 'Paid',
-      dataIndex: 'paid',
-      key: 'paid',
-      width: 120,
-      render: (v: number) => v.toLocaleString(),
-    },
-    {
-      title: 'Incurred',
-      dataIndex: 'incurred',
-      key: 'incurred',
-      width: 120,
-      render: (v: number) => v.toLocaleString(),
-    },
-  ];
-
   const handleUpload = async (file: File) => {
     setUploading(true);
     try {
       const text = await file.text();
       const parsed = parseTrianglesCsv(text);
-      setTriangles(parsed);
+      setRows(parsed);
+      const headers = Object.keys(parsed[0] ?? {});
+      setColumns(headers.map((h) => ({ title: h, dataIndex: h, key: h })));
 
-      if (API) {
-        const form = new FormData();
-        form.append('file', file);
-        form.append('ay_col', 'accidentYear');
-        form.append('value_col', 'paid');
-        const res = await fetch(`${API}/summary/ay-sum`, {
-          method: 'POST',
-          body: form,
-        });
-        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || 'Unknown backend error');
-        setAySum(json.results || []);
+      if (headers.includes('accidentYear') && headers.includes('paid')) {
+        if (API) {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('ay_col', 'accidentYear');
+          form.append('value_col', 'paid');
+          const res = await fetch(`${API}/summary/ay-sum`, {
+            method: 'POST',
+            body: form,
+          });
+          if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error || 'Unknown backend error');
+          setAySum(json.results || []);
+        } else {
+          const map = new Map<number | string, number>();
+          parsed.forEach((r) => {
+            const ay = String(r['accidentYear']);
+            const paid = Number(r['paid']);
+            if (!Number.isNaN(paid)) {
+              map.set(ay, (map.get(ay) ?? 0) + paid);
+            }
+          });
+          setAySum(
+            Array.from(map, ([accidentYear, sum]) => ({ accidentYear, sum })),
+          );
+        }
       } else {
-        const map = new Map<number, number>();
-        parsed.forEach((r) => {
-          map.set(r.accidentYear, (map.get(r.accidentYear) ?? 0) + r.paid);
-        });
-        setAySum(
-          Array.from(map, ([accidentYear, sum]) => ({ accidentYear, sum })),
-        );
+        setAySum([]);
       }
       message.success('Data loaded');
     } catch (e: unknown) {
@@ -216,7 +133,7 @@ export default function Triangles() {
                 Upload Data
               </Button>
             </Upload>
-            {triangles.length > 0 && (
+            {rows.length > 0 && (
               <Button icon={<DownloadOutlined />} onClick={handleExport}>
                 Export CSV
               </Button>
@@ -226,15 +143,12 @@ export default function Triangles() {
       />
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        {triangles.length > 0 && (
+        {rows.length > 0 && (
           <>
             <Table
               columns={columns}
-              dataSource={triangles}
-              onChange={handleChange}
-              rowKey={(r) =>
-                `${r.portfolio}-${r.lob}-${r.accidentYear}-${r.dev}`
-              }
+              dataSource={rows}
+              rowKey={(_, i) => String(i)}
               pagination={{ pageSize: 20 }}
               sticky
               scroll={{ x: 'max-content', y: 600 }}
