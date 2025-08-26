@@ -10,22 +10,11 @@ vi.mock('react-router', () => ({
     <a href={to}>{children}</a>
   ),
   UNSAFE_withComponentProps: <T extends ComponentType>(Comp: T) => Comp,
-  useLoaderData: () => ({
-    triangles: [
-      {
-        portfolio: 'Alpha',
-        lob: 'D&O',
-        accidentYear: 2020,
-        dev: 12,
-        paid: 1000,
-        incurred: 1200,
-      },
-    ],
-  }),
+  useLoaderData: () => ({ triangles: [] }),
 }));
 
 import { MemoryRouter } from 'react-router';
-import TrianglesPage from '../_layout.triangles';
+import TrianglesPage, { parseTrianglesCsv } from '../_layout.triangles';
 
 describe('Triangles', () => {
   it('renders Triangles page header', () => {
@@ -37,5 +26,13 @@ describe('Triangles', () => {
     expect(
       screen.getByRole('heading', { name: /Triangles/i }),
     ).toBeInTheDocument();
+  });
+
+  it('parses arbitrary dataset without enforcing headers', () => {
+    const csv = `foo,bar\n1,baz\n2,qux`;
+    expect(parseTrianglesCsv(csv)).toEqual([
+      { foo: 1, bar: 'baz' },
+      { foo: 2, bar: 'qux' },
+    ]);
   });
 });
