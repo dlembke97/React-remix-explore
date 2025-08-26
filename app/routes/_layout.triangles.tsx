@@ -9,8 +9,13 @@ import PageHeader from '../components/PageHeader';
 import type { TriangleRow } from '../data/triangles';
 import { getTriangles } from '../data/triangles';
 
-const API = (import.meta as { env?: { VITE_API_BASE_URL?: string } }).env?.
-  VITE_API_BASE_URL;
+// --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
+const baked = import.meta.env.VITE_API_BASE_URL;
+const runtimeGuess =
+  typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}:8000`
+    : undefined;
+const API = baked ?? runtimeGuess;
 
 export const meta = () => [{ title: 'Triangles' }];
 
@@ -20,8 +25,12 @@ export function loader() {
 
 export default function Triangles() {
   const { triangles } = useLoaderData<typeof loader>();
-  const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>({});
-  const [aySum, setAySum] = React.useState<Array<{ accidentYear: number | string; sum: number }>>([]);
+  const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>(
+    {},
+  );
+  const [aySum, setAySum] = React.useState<
+    Array<{ accidentYear: number | string; sum: number }>
+  >([]);
   const [uploading, setUploading] = React.useState(false);
 
   const handleChange: TableProps<TriangleRow>['onChange'] = (_, __, sorter) => {
@@ -31,7 +40,12 @@ export default function Triangles() {
   };
 
   const dataToExport: TriangleRow[] = React.useMemo(() => {
-    if (sortedInfo && !Array.isArray(sortedInfo) && sortedInfo.order && sortedInfo.field) {
+    if (
+      sortedInfo &&
+      !Array.isArray(sortedInfo) &&
+      sortedInfo.order &&
+      sortedInfo.field
+    ) {
       const field = sortedInfo.field as keyof TriangleRow;
       const sorted = [...triangles].sort((a, b) => {
         const aVal = a[field] as number;
@@ -44,9 +58,16 @@ export default function Triangles() {
   }, [triangles, sortedInfo]);
 
   const handleExport = () => {
-    const headers = ['Portfolio','LOB','AY','Dev (m)','Paid','Incurred'];
-    const rows = dataToExport.map(r => [r.portfolio, r.lob, r.accidentYear, r.dev, r.paid, r.incurred]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const headers = ['Portfolio', 'LOB', 'AY', 'Dev (m)', 'Paid', 'Incurred'];
+    const rows = dataToExport.map((r) => [
+      r.portfolio,
+      r.lob,
+      r.accidentYear,
+      r.dev,
+      r.paid,
+      r.incurred,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -57,28 +78,56 @@ export default function Triangles() {
   };
 
   const columns: ColumnsType<TriangleRow> = [
-    { title: 'Portfolio', dataIndex: 'portfolio', key: 'portfolio', width: 120 },
+    {
+      title: 'Portfolio',
+      dataIndex: 'portfolio',
+      key: 'portfolio',
+      width: 120,
+    },
     { title: 'LOB', dataIndex: 'lob', key: 'lob', width: 120 },
     {
-      title: 'AY', dataIndex: 'accidentYear', key: 'accidentYear', width: 90,
+      title: 'AY',
+      dataIndex: 'accidentYear',
+      key: 'accidentYear',
+      width: 90,
       sorter: (a, b) => a.accidentYear - b.accidentYear,
-      sortOrder: !Array.isArray(sortedInfo) && sortedInfo.field === 'accidentYear' ? sortedInfo.order : null,
+      sortOrder:
+        !Array.isArray(sortedInfo) && sortedInfo.field === 'accidentYear'
+          ? sortedInfo.order
+          : null,
     },
     {
-      title: 'Dev (m)', dataIndex: 'dev', key: 'dev', width: 90,
+      title: 'Dev (m)',
+      dataIndex: 'dev',
+      key: 'dev',
+      width: 90,
       sorter: (a, b) => a.dev - b.dev,
-      sortOrder: !Array.isArray(sortedInfo) && sortedInfo.field === 'dev' ? sortedInfo.order : null,
+      sortOrder:
+        !Array.isArray(sortedInfo) && sortedInfo.field === 'dev'
+          ? sortedInfo.order
+          : null,
     },
-    { title: 'Paid', dataIndex: 'paid', key: 'paid', width: 120, render: (v: number) => v.toLocaleString() },
-    { title: 'Incurred', dataIndex: 'incurred', key: 'incurred', width: 120, render: (v: number) => v.toLocaleString() },
+    {
+      title: 'Paid',
+      dataIndex: 'paid',
+      key: 'paid',
+      width: 120,
+      render: (v: number) => v.toLocaleString(),
+    },
+    {
+      title: 'Incurred',
+      dataIndex: 'incurred',
+      key: 'incurred',
+      width: 120,
+      render: (v: number) => v.toLocaleString(),
+    },
   ];
-
-  // ---- Upload to FastAPI: multipart/form-data with CSV ----
-  const beforeUpload = () => false; // prevent auto upload by AntD
 
   const onUpload = async (file: File) => {
     if (!API) {
-      message.error('Backend not configured. Set VITE_API_BASE_URL in .env to use the API.');
+      message.error(
+        'Backend not configured. Set VITE_API_BASE_URL or run backend on :8000.',
+      );
       return;
     }
     setUploading(true);
@@ -108,8 +157,17 @@ export default function Triangles() {
     <div style={{ padding: 16 }}>
       <PageHeader
         title="Triangles"
-        breadcrumb={{ items: [{ title: <Link to="/">Dashboard</Link> }, { title: 'Triangles' }] }}
-        extra={<Button icon={<DownloadOutlined />} onClick={handleExport}>Export CSV</Button>}
+        breadcrumb={{
+          items: [
+            { title: <Link to="/">Dashboard</Link> },
+            { title: 'Triangles' },
+          ],
+        }}
+        extra={
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>
+            Export CSV
+          </Button>
+        }
       />
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -123,19 +181,31 @@ export default function Triangles() {
           scroll={{ x: 'max-content', y: 600 }}
         />
 
-        <Card title="AY Sum (via FastAPI)" extra={<span>{API ? 'API enabled' : 'API not configured'}</span>}>
+        <Card
+          title="AY Sum (via FastAPI)"
+          extra={<span>{API ? `API: ${API}` : 'API not configured'}</span>}
+        >
           <Upload.Dragger
             multiple={false}
-            beforeUpload={beforeUpload}
-            customRequest={({ file, onSuccess, onError }) => {
-              onUpload(file as File).then(() => onSuccess && onSuccess({}, new XMLHttpRequest())).catch(onError);
+            // Trigger our upload and prevent AntD from auto-uploading
+            beforeUpload={(file) => {
+              onUpload(file as File);
+              return false; // keep AntD from trying to upload itself
             }}
+            // remove customRequest entirely
+            showUploadList={false} // optional: hide the file chip if you want
             accept=".csv,text/csv"
             disabled={!API || uploading}
           >
-            <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-            <p className="ant-upload-text">Drop a CSV here, or click to select</p>
-            <p className="ant-upload-hint">Must include columns: accidentYear, paid</p>
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              Drop a CSV here, or click to select
+            </p>
+            <p className="ant-upload-hint">
+              Must include columns: accidentYear, paid
+            </p>
           </Upload.Dragger>
 
           {aySum.length > 0 && (
@@ -146,7 +216,11 @@ export default function Triangles() {
               rowKey={(r) => String(r.accidentYear)}
               columns={[
                 { title: 'Accident Year', dataIndex: 'accidentYear' },
-                { title: 'Sum (paid)', dataIndex: 'sum', render: (v: number) => v.toLocaleString() },
+                {
+                  title: 'Sum (paid)',
+                  dataIndex: 'sum',
+                  render: (v: number) => v.toLocaleString(),
+                },
               ]}
               dataSource={aySum}
             />

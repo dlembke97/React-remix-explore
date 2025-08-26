@@ -184,4 +184,3 @@ docker compose up --build
 - `VITE_API_BASE_URL` is baked into the frontend at build time via Compose build args.
 - If you change the backend address, rerun `docker compose up --build`.
 - For local development without Docker, use the "Quick start" and "Backend (FastAPI) & Frontend Connection" steps above.
-

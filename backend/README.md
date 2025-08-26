@@ -1,6 +1,7 @@
 # Reserving API (FastAPI)
 
 ## Setup (Windows PowerShell)
+
 ```powershell
 cd backend
 python -m venv .venv
@@ -24,9 +25,9 @@ value_col (default paid)
 response:
 
 {
-  "ok": true,
-  "results": [
-    { "accidentYear": 2019, "sum": 12345.0 },
-    { "accidentYear": 2020, "sum": 67890.0 }
-  ]
+"ok": true,
+"results": [
+{ "accidentYear": 2019, "sum": 12345.0 },
+{ "accidentYear": 2020, "sum": 67890.0 }
+]
 }
