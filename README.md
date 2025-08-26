@@ -181,5 +181,7 @@ docker compose up --build
 - Frontend: http://localhost:3001
 - Backend: http://localhost:8000
 - Inside Docker, the frontend talks to the backend through `VITE_API_BASE_URL=http://backend:8000`.
+- `VITE_API_BASE_URL` is baked into the frontend at build time via Compose build args.
+- If you change the backend address, rerun `docker compose up --build`.
 - For local development without Docker, use the "Quick start" and "Backend (FastAPI) & Frontend Connection" steps above.
 

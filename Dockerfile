@@ -13,6 +13,8 @@ RUN npm ci --omit=dev --ignore-scripts
 # --- build ---
 FROM node:20-alpine AS build
 WORKDIR /app
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 COPY . .
 COPY --from=dev-deps /app/node_modules ./node_modules
 RUN npm run build
@@ -21,6 +23,8 @@ RUN npm run build
 FROM node:20-alpine
 ENV NODE_ENV=production
 ENV PORT=3000
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 WORKDIR /app
 COPY package*.json ./
 COPY --from=prod-deps /app/node_modules ./node_modules

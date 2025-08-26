@@ -1,6 +1,9 @@
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: http://backend:8000
     container_name: reserving-frontend
     environment:
       - NODE_ENV=production
