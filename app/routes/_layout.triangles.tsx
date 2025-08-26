@@ -2,8 +2,8 @@ import React from 'react';
 import { Link, useLoaderData } from 'react-router';
 import type { ColumnsType, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import { Table, Button, Upload, Space, message, Card } from 'antd';
-import { InboxOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Button, Upload, Space, message } from 'antd';
+import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
 
 import type { TriangleRow } from '../data/triangles';
@@ -24,7 +24,9 @@ export function loader() {
 }
 
 export default function Triangles() {
-  const { triangles } = useLoaderData<typeof loader>();
+  const { triangles: initialTriangles } = useLoaderData<typeof loader>();
+  const [triangles, setTriangles] =
+    React.useState<TriangleRow[]>(initialTriangles);
   const [sortedInfo, setSortedInfo] = React.useState<SorterResult<TriangleRow>>(
     {},
   );
@@ -123,28 +125,63 @@ export default function Triangles() {
     },
   ];
 
-  const onUpload = async (file: File) => {
-    if (!API) {
-      message.error(
-        'Backend not configured. Set VITE_API_BASE_URL or run backend on :8000.',
-      );
-      return;
+  const parseTrianglesCsv = (text: string): TriangleRow[] => {
+    const [headerLine, ...lines] = text.trim().split(/\r?\n/);
+    const headers = headerLine.split(',').map((h) => h.trim());
+    const required = [
+      'portfolio',
+      'lob',
+      'accidentYear',
+      'dev',
+      'paid',
+      'incurred',
+    ];
+    if (!required.every((h) => headers.includes(h))) {
+      throw new Error('Missing required columns');
     }
+    return lines.filter(Boolean).map((line) => {
+      const cols = line.split(',').map((c) => c.trim());
+      return {
+        portfolio: cols[headers.indexOf('portfolio')],
+        lob: cols[headers.indexOf('lob')],
+        accidentYear: Number(cols[headers.indexOf('accidentYear')]),
+        dev: Number(cols[headers.indexOf('dev')]),
+        paid: Number(cols[headers.indexOf('paid')]),
+        incurred: Number(cols[headers.indexOf('incurred')]),
+      };
+    });
+  };
+
+  const handleUpload = async (file: File) => {
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      form.append('ay_col', 'accidentYear');
-      form.append('value_col', 'paid');
-      const res = await fetch(`${API}/summary/ay-sum`, {
-        method: 'POST',
-        body: form,
-      });
-      if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Unknown backend error');
-      setAySum(json.results || []);
-      message.success('Summary calculated');
+      const text = await file.text();
+      const parsed = parseTrianglesCsv(text);
+      setTriangles(parsed);
+
+      if (API) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('ay_col', 'accidentYear');
+        form.append('value_col', 'paid');
+        const res = await fetch(`${API}/summary/ay-sum`, {
+          method: 'POST',
+          body: form,
+        });
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'Unknown backend error');
+        setAySum(json.results || []);
+      } else {
+        const map = new Map<number, number>();
+        parsed.forEach((r) => {
+          map.set(r.accidentYear, (map.get(r.accidentYear) ?? 0) + r.paid);
+        });
+        setAySum(
+          Array.from(map, ([accidentYear, sum]) => ({ accidentYear, sum })),
+        );
+      }
+      message.success('Data loaded');
     } catch (e: unknown) {
       console.error(e);
       message.error(e instanceof Error ? e.message : 'Upload failed');
@@ -164,9 +201,24 @@ export default function Triangles() {
           ],
         }}
         extra={
-          <Button icon={<DownloadOutlined />} onClick={handleExport}>
-            Export CSV
-          </Button>
+          <Space>
+            <Upload
+              beforeUpload={(file) => {
+                handleUpload(file as File);
+                return false;
+              }}
+              showUploadList={false}
+              accept=".csv,text/csv"
+              disabled={uploading}
+            >
+              <Button icon={<UploadOutlined />} loading={uploading}>
+                Upload Data
+              </Button>
+            </Upload>
+            <Button icon={<DownloadOutlined />} onClick={handleExport}>
+              Export CSV
+            </Button>
+          </Space>
         }
       />
 
@@ -181,51 +233,24 @@ export default function Triangles() {
           scroll={{ x: 'max-content', y: 600 }}
         />
 
-        <Card
-          title="AY Sum (via FastAPI)"
-          extra={<span>{API ? `API: ${API}` : 'API not configured'}</span>}
-        >
-          <Upload.Dragger
-            multiple={false}
-            // Trigger our upload and prevent AntD from auto-uploading
-            beforeUpload={(file) => {
-              onUpload(file as File);
-              return false; // keep AntD from trying to upload itself
-            }}
-            // remove customRequest entirely
-            showUploadList={false} // optional: hide the file chip if you want
-            accept=".csv,text/csv"
-            disabled={!API || uploading}
-          >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">
-              Drop a CSV here, or click to select
-            </p>
-            <p className="ant-upload-hint">
-              Must include columns: accidentYear, paid
-            </p>
-          </Upload.Dragger>
-
-          {aySum.length > 0 && (
-            <Table
-              style={{ marginTop: 16 }}
-              size="small"
-              pagination={false}
-              rowKey={(r) => String(r.accidentYear)}
-              columns={[
-                { title: 'Accident Year', dataIndex: 'accidentYear' },
-                {
-                  title: 'Sum (paid)',
-                  dataIndex: 'sum',
-                  render: (v: number) => v.toLocaleString(),
-                },
-              ]}
-              dataSource={aySum}
-            />
-          )}
-        </Card>
+        {aySum.length > 0 && (
+          <Table
+            title={() => 'AY Sum'}
+            style={{ marginTop: 16 }}
+            size="small"
+            pagination={false}
+            rowKey={(r) => String(r.accidentYear)}
+            columns={[
+              { title: 'Accident Year', dataIndex: 'accidentYear' },
+              {
+                title: 'Sum (paid)',
+                dataIndex: 'sum',
+                render: (v: number) => v.toLocaleString(),
+              },
+            ]}
+            dataSource={aySum}
+          />
+        )}
       </Space>
     </div>
   );
