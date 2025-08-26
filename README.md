@@ -166,7 +166,7 @@ Open http://localhost:3001. Map to another host port if 3000 is taken (`-p 5000:
    - `paid`
    - (other columns are ignored)
 5. **Troubleshooting**
-   - CORS errors: ensure the backend allows `http://localhost:5173`.
+   - CORS errors: ensure the backend allows your frontend origin (e.g., `http://localhost:5173` for `npm run dev`, `http://localhost:3000` for `npm start`, or `http://localhost:3001` via Docker).
    - Missing columns: check CSV headers match `accidentYear`/`paid`.
    - Port already in use: choose another port and update `.env`.
 
