@@ -113,8 +113,14 @@ export default function Triangles() {
   const [developmentColumn, setDevelopmentColumn] = React.useState('');
   const [numericColumns, setNumericColumns] = React.useState<string[]>([]);
   const [lossColumn, setLossColumn] = React.useState('');
+  const [categoricalColumns, setCategoricalColumns] = React.useState<string[]>(
+    [],
+  );
+  const [categoryColumn, setCategoryColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
-  const [triangleRows, setTriangleRows] = React.useState<CsvRow[]>([]);
+  const [triangles, setTriangles] = React.useState<Record<string, CsvRow[]>>(
+    {},
+  );
   const [triangleColumns, setTriangleColumns] = React.useState<
     ColumnsType<CsvRow>
   >([]);
@@ -152,6 +158,11 @@ export default function Triangles() {
       );
       setNumericColumns(numericCols);
       setLossColumn(numericCols[0] ?? '');
+      const catCols = headers.filter(
+        (h) => !dateCols.includes(h) && !numericCols.includes(h),
+      );
+      setCategoricalColumns(catCols);
+      setCategoryColumn('');
       setUploadedFile(file);
       message.success('Data loaded');
     } catch (e: unknown) {
@@ -224,7 +235,7 @@ export default function Triangles() {
         !uploadedFile ||
         !API
       ) {
-        setTriangleRows([]);
+        setTriangles({});
         setTriangleColumns([]);
         return;
       }
@@ -234,6 +245,9 @@ export default function Triangles() {
         form.append('origin_col', originColumn);
         form.append('development_col', developmentColumn);
         form.append('value_col', lossColumn);
+        if (categoryColumn) {
+          form.append('category_col', categoryColumn);
+        }
         const res = await fetch(`${API}/triangle`, {
           method: 'POST',
           body: form,
@@ -241,10 +255,11 @@ export default function Triangles() {
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || 'Unknown backend error');
-        const data: CsvRow[] = json.triangle || [];
-        setTriangleRows(data);
-        if (data.length > 0) {
-          const headers = Object.keys(data[0]);
+        const returned: Record<string, CsvRow[]> = json.triangles || {};
+        setTriangles(returned);
+        const first = Object.values(returned)[0] ?? [];
+        if (first.length > 0) {
+          const headers = Object.keys(first[0]);
           if (originColumn && headers.includes(originColumn)) {
             headers.splice(headers.indexOf(originColumn), 1);
             headers.unshift(originColumn);
@@ -257,12 +272,18 @@ export default function Triangles() {
         }
       } catch (err) {
         console.error(err);
-        setTriangleRows([]);
+        setTriangles({});
         setTriangleColumns([]);
       }
     };
     buildTriangle();
-  }, [originColumn, developmentColumn, lossColumn, uploadedFile]);
+  }, [
+    originColumn,
+    developmentColumn,
+    lossColumn,
+    categoryColumn,
+    uploadedFile,
+  ]);
 
   return (
     <div style={{ padding: 16 }}>
@@ -355,6 +376,24 @@ export default function Triangles() {
               options={numericColumns.map((c) => ({ value: c, label: c }))}
               disabled={numericColumns.length === 0}
             />
+            <Title
+              level={4}
+              id="category-field-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Category Field
+            </Title>
+            <Select
+              id="category-field-select"
+              aria-labelledby="category-field-heading"
+              style={{ width: '100%' }}
+              placeholder="Select category column"
+              value={categoryColumn || undefined}
+              onChange={(v) => setCategoryColumn(v)}
+              options={categoricalColumns.map((c) => ({ value: c, label: c }))}
+              allowClear
+              disabled={categoricalColumns.length === 0}
+            />
           </Space>
         </Sider>
         <Content>
@@ -414,16 +453,18 @@ export default function Triangles() {
                     size="large"
                     style={{ width: '100%' }}
                   >
-                    {triangleRows.length > 0 && (
+                    {Object.entries(triangles).map(([key, data]) => (
                       <Table
+                        key={key}
+                        title={() => key}
                         columns={triangleColumns}
-                        dataSource={triangleRows}
+                        dataSource={data}
                         rowKey={(_, i) => String(i)}
                         pagination={{ pageSize: 20 }}
                         sticky
                         scroll={{ x: 'max-content', y: 600 }}
                       />
-                    )}
+                    ))}
                   </Space>
                 ),
               },
