@@ -217,12 +217,10 @@ export default function Triangles() {
           style={{ background: '#fff', padding: 16, marginRight: 16 }}
         >
           <Space direction="vertical" style={{ width: '100%' }}>
-            <label id="origin-date-label" htmlFor="origin-date-select">
-              Origin Date
-            </label>
+            <h3 id="origin-date-heading">Origin Date</h3>
             <Select
               id="origin-date-select"
-              aria-labelledby="origin-date-label"
+              aria-labelledby="origin-date-heading"
               style={{ width: '100%' }}
               placeholder="Select origin column"
               value={originColumn || undefined}
