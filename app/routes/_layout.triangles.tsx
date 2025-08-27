@@ -10,6 +10,7 @@ import {
   Layout,
   Tabs,
   Select,
+  Typography,
 } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
@@ -93,6 +94,7 @@ export default function Triangles() {
   const [originColumn, setOriginColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
   const { Sider, Content } = Layout;
+  const { Title } = Typography;
 
   const handleExport = () => {
     if (rows.length === 0) return;
@@ -217,7 +219,13 @@ export default function Triangles() {
           style={{ background: '#fff', padding: 16, marginRight: 16 }}
         >
           <Space direction="vertical" style={{ width: '100%' }}>
-            <h3 id="origin-date-heading">Origin Date</h3>
+            <Title
+              level={4}
+              id="origin-date-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Origin Date
+            </Title>
             <Select
               id="origin-date-select"
               aria-labelledby="origin-date-heading"
