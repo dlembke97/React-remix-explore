@@ -114,6 +114,10 @@ export default function Triangles() {
   const [numericColumns, setNumericColumns] = React.useState<string[]>([]);
   const [lossColumn, setLossColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
+  const [triangleRows, setTriangleRows] = React.useState<CsvRow[]>([]);
+  const [triangleColumns, setTriangleColumns] = React.useState<
+    ColumnsType<CsvRow>
+  >([]);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
 
@@ -210,6 +214,51 @@ export default function Triangles() {
     };
     compute();
   }, [originColumn, lossColumn, rows, uploadedFile]);
+
+  React.useEffect(() => {
+    const buildTriangle = async () => {
+      if (
+        !originColumn ||
+        !developmentColumn ||
+        !lossColumn ||
+        !uploadedFile ||
+        !API
+      ) {
+        setTriangleRows([]);
+        setTriangleColumns([]);
+        return;
+      }
+      try {
+        const form = new FormData();
+        form.append('file', uploadedFile);
+        form.append('origin_col', originColumn);
+        form.append('development_col', developmentColumn);
+        form.append('value_col', lossColumn);
+        const res = await fetch(`${API}/triangle`, {
+          method: 'POST',
+          body: form,
+        });
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'Unknown backend error');
+        const data: CsvRow[] = json.triangle || [];
+        setTriangleRows(data);
+        if (data.length > 0) {
+          const headers = Object.keys(data[0]);
+          setTriangleColumns(
+            headers.map((h) => ({ title: h, dataIndex: h, key: h })),
+          );
+        } else {
+          setTriangleColumns([]);
+        }
+      } catch (err) {
+        console.error(err);
+        setTriangleRows([]);
+        setTriangleColumns([]);
+      }
+    };
+    buildTriangle();
+  }, [originColumn, developmentColumn, lossColumn, uploadedFile]);
 
   return (
     <div style={{ padding: 16 }}>
@@ -348,6 +397,28 @@ export default function Triangles() {
                           />
                         )}
                       </>
+                    )}
+                  </Space>
+                ),
+              },
+              {
+                key: 'triangle',
+                label: 'Triangle',
+                children: (
+                  <Space
+                    direction="vertical"
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    {triangleRows.length > 0 && (
+                      <Table
+                        columns={triangleColumns}
+                        dataSource={triangleRows}
+                        rowKey={(_, i) => String(i)}
+                        pagination={{ pageSize: 20 }}
+                        sticky
+                        scroll={{ x: 'max-content', y: 600 }}
+                      />
                     )}
                   </Space>
                 ),
