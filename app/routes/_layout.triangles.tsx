@@ -1,7 +1,16 @@
 import React from 'react';
 import { Link, useLoaderData } from 'react-router';
 import type { ColumnsType } from 'antd/es/table';
-import { Table, Button, Upload, Space, message } from 'antd';
+import {
+  Table,
+  Button,
+  Upload,
+  Space,
+  message,
+  Layout,
+  Tabs,
+  Select,
+} from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
 
@@ -37,14 +46,37 @@ export const parseTrianglesCsv = (text: string): CsvRow[] => {
   });
 };
 
+const isDateLike = (value: unknown): boolean => {
+  if (typeof value === 'number') {
+    return value >= 1000 && value <= 9999;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}$/.test(trimmed)) return true;
+    const timestamp = Date.parse(trimmed);
+    return !Number.isNaN(timestamp);
+  }
+  return false;
+};
+
+const getDateLikeColumns = (data: CsvRow[]): string[] => {
+  if (data.length === 0) return [];
+  const headers = Object.keys(data[0]);
+  return headers.filter((h) => data.some((row) => isDateLike(row[h])));
+};
+
 export default function Triangles() {
   const { triangles: initialTriangles } = useLoaderData<typeof loader>();
   const [rows, setRows] = React.useState<CsvRow[]>(initialTriangles);
   const [columns, setColumns] = React.useState<ColumnsType<CsvRow>>([]);
   const [aySum, setAySum] = React.useState<
-    Array<{ accidentYear: number | string; sum: number }>
+    Array<{ origin: number | string; sum: number }>
   >([]);
   const [uploading, setUploading] = React.useState(false);
+  const [dateColumns, setDateColumns] = React.useState<string[]>([]);
+  const [originColumn, setOriginColumn] = React.useState('');
+  const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
+  const { Sider, Content } = Layout;
 
   const handleExport = () => {
     if (rows.length === 0) return;
@@ -68,37 +100,10 @@ export default function Triangles() {
       setRows(parsed);
       const headers = Object.keys(parsed[0] ?? {});
       setColumns(headers.map((h) => ({ title: h, dataIndex: h, key: h })));
-
-      if (headers.includes('accidentYear') && headers.includes('paid')) {
-        if (API) {
-          const form = new FormData();
-          form.append('file', file);
-          form.append('ay_col', 'accidentYear');
-          form.append('value_col', 'paid');
-          const res = await fetch(`${API}/summary/ay-sum`, {
-            method: 'POST',
-            body: form,
-          });
-          if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-          const json = await res.json();
-          if (!json.ok) throw new Error(json.error || 'Unknown backend error');
-          setAySum(json.results || []);
-        } else {
-          const map = new Map<number | string, number>();
-          parsed.forEach((r) => {
-            const ay = String(r['accidentYear']);
-            const paid = Number(r['paid']);
-            if (!Number.isNaN(paid)) {
-              map.set(ay, (map.get(ay) ?? 0) + paid);
-            }
-          });
-          setAySum(
-            Array.from(map, ([accidentYear, sum]) => ({ accidentYear, sum })),
-          );
-        }
-      } else {
-        setAySum([]);
-      }
+      const dateCols = getDateLikeColumns(parsed);
+      setDateColumns(dateCols);
+      setOriginColumn(dateCols[0] ?? '');
+      setUploadedFile(file);
       message.success('Data loaded');
     } catch (e: unknown) {
       console.error(e);
@@ -107,6 +112,54 @@ export default function Triangles() {
       setUploading(false);
     }
   };
+
+  React.useEffect(() => {
+    const compute = async () => {
+      if (!originColumn || rows.length === 0 || !rows[0]?.['paid']) {
+        setAySum([]);
+        return;
+      }
+      if (uploadedFile && API) {
+        try {
+          const form = new FormData();
+          form.append('file', uploadedFile);
+          form.append('ay_col', originColumn);
+          form.append('value_col', 'paid');
+          const res = await fetch(`${API}/summary/ay-sum`, {
+            method: 'POST',
+            body: form,
+          });
+          if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+          const json = await res.json();
+          if (!json.ok) throw new Error(json.error || 'Unknown backend error');
+          type BackendSum = {
+            accidentYear?: number | string;
+            origin?: number | string;
+            sum: number;
+          };
+          setAySum(
+            (json.results || []).map((r: BackendSum) => ({
+              origin: r.accidentYear ?? r.origin,
+              sum: r.sum,
+            })),
+          );
+          return;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      const map = new Map<number | string, number>();
+      rows.forEach((r) => {
+        const ay = String(r[originColumn]);
+        const paid = Number(r['paid']);
+        if (!Number.isNaN(paid) && ay) {
+          map.set(ay, (map.get(ay) ?? 0) + paid);
+        }
+      });
+      setAySum(Array.from(map, ([origin, sum]) => ({ origin, sum })));
+    };
+    compute();
+  }, [originColumn, rows, uploadedFile]);
 
   return (
     <div style={{ padding: 16 }}>
@@ -142,39 +195,74 @@ export default function Triangles() {
         }
       />
 
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        {rows.length > 0 && (
-          <>
-            <Table
-              columns={columns}
-              dataSource={rows}
-              rowKey={(_, i) => String(i)}
-              pagination={{ pageSize: 20 }}
-              sticky
-              scroll={{ x: 'max-content', y: 600 }}
+      <Layout style={{ marginTop: 16 }}>
+        <Sider
+          width={200}
+          style={{ background: '#fff', padding: 16, marginRight: 16 }}
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <label htmlFor="origin-date-select">Origin Date</label>
+            <Select
+              id="origin-date-select"
+              style={{ width: '100%' }}
+              placeholder="Select origin column"
+              value={originColumn || undefined}
+              onChange={(v) => setOriginColumn(v)}
+              options={dateColumns.map((c) => ({ value: c, label: c }))}
+              disabled={dateColumns.length === 0}
             />
+          </Space>
+        </Sider>
+        <Content>
+          <Tabs
+            items={[
+              {
+                key: 'upload',
+                label: 'Data Upload',
+                children: (
+                  <Space
+                    direction="vertical"
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    {rows.length > 0 && (
+                      <>
+                        <Table
+                          columns={columns}
+                          dataSource={rows}
+                          rowKey={(_, i) => String(i)}
+                          pagination={{ pageSize: 20 }}
+                          sticky
+                          scroll={{ x: 'max-content', y: 600 }}
+                        />
 
-            {aySum.length > 0 && (
-              <Table
-                title={() => 'AY Sum'}
-                style={{ marginTop: 16 }}
-                size="small"
-                pagination={false}
-                rowKey={(r) => String(r.accidentYear)}
-                columns={[
-                  { title: 'Accident Year', dataIndex: 'accidentYear' },
-                  {
-                    title: 'Sum (paid)',
-                    dataIndex: 'sum',
-                    render: (v: number) => v.toLocaleString(),
-                  },
-                ]}
-                dataSource={aySum}
-              />
-            )}
-          </>
-        )}
-      </Space>
+                        {aySum.length > 0 && (
+                          <Table
+                            title={() => `Sum by ${originColumn}`}
+                            style={{ marginTop: 16 }}
+                            size="small"
+                            pagination={false}
+                            rowKey={(r) => String(r.origin)}
+                            columns={[
+                              { title: originColumn, dataIndex: 'origin' },
+                              {
+                                title: 'Sum (paid)',
+                                dataIndex: 'sum',
+                                render: (v: number) => v.toLocaleString(),
+                              },
+                            ]}
+                            dataSource={aySum}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </Content>
+      </Layout>
     </div>
   );
 }
