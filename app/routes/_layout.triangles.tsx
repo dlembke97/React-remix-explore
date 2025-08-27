@@ -48,13 +48,20 @@ export const parseTrianglesCsv = (text: string): CsvRow[] => {
 
 const isDateLike = (value: unknown): boolean => {
   if (typeof value === 'number') {
-    return value >= 1000 && value <= 9999;
+    return Number.isInteger(value) && value >= 1950 && value <= 2030;
   }
   if (typeof value === 'string') {
     const trimmed = value.trim();
-    if (/^\d{4}$/.test(trimmed)) return true;
+    if (trimmed === '') return false;
+    if (/^\d{4}$/.test(trimmed)) {
+      const year = Number(trimmed);
+      return year >= 1950 && year <= 2030;
+    }
     const timestamp = Date.parse(trimmed);
-    return !Number.isNaN(timestamp);
+    if (!Number.isNaN(timestamp)) {
+      const year = new Date(timestamp).getFullYear();
+      return year >= 1950 && year <= 2030;
+    }
   }
   return false;
 };
@@ -62,7 +69,16 @@ const isDateLike = (value: unknown): boolean => {
 const getDateLikeColumns = (data: CsvRow[]): string[] => {
   if (data.length === 0) return [];
   const headers = Object.keys(data[0]);
-  return headers.filter((h) => data.some((row) => isDateLike(row[h])));
+  return headers.filter((h) => {
+    let hasValue = false;
+    const allValid = data.every((row) => {
+      const value = row[h];
+      if (value === '' || value === null || value === undefined) return true;
+      hasValue = true;
+      return isDateLike(value);
+    });
+    return allValid && hasValue;
+  });
 };
 
 export default function Triangles() {
