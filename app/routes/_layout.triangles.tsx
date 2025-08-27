@@ -143,7 +143,9 @@ export default function Triangles() {
       setDateColumns(dateCols);
       setOriginColumn(dateCols[0] ?? '');
       setDevelopmentColumn(dateCols[0] ?? '');
-      const numericCols = getNumericColumns(parsed);
+      const numericCols = getNumericColumns(parsed).filter(
+        (c) => !dateCols.includes(c),
+      );
       setNumericColumns(numericCols);
       setLossColumn(numericCols[0] ?? '');
       setUploadedFile(file);
