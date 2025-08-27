@@ -26,6 +26,12 @@ describe('Triangles', () => {
     expect(
       screen.getByRole('heading', { name: /Triangles/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Origin Date/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Development Date/i }),
+    ).toBeInTheDocument();
   });
 
   it('parses arbitrary dataset without enforcing headers', () => {
