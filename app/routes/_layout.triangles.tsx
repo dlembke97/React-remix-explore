@@ -82,6 +82,24 @@ const getDateLikeColumns = (data: CsvRow[]): string[] => {
   });
 };
 
+const getNumericColumns = (data: CsvRow[]): string[] => {
+  if (data.length === 0) return [];
+  const headers = Object.keys(data[0]);
+  return headers.filter((h) => {
+    let hasValue = false;
+    const allNumeric = data.every((row) => {
+      const value = row[h];
+      if (value === '' || value === null || value === undefined) return true;
+      if (typeof value === 'number') {
+        hasValue = true;
+        return true;
+      }
+      return false;
+    });
+    return allNumeric && hasValue;
+  });
+};
+
 export default function Triangles() {
   const { triangles: initialTriangles } = useLoaderData<typeof loader>();
   const [rows, setRows] = React.useState<CsvRow[]>(initialTriangles);
@@ -93,6 +111,8 @@ export default function Triangles() {
   const [dateColumns, setDateColumns] = React.useState<string[]>([]);
   const [originColumn, setOriginColumn] = React.useState('');
   const [developmentColumn, setDevelopmentColumn] = React.useState('');
+  const [numericColumns, setNumericColumns] = React.useState<string[]>([]);
+  const [lossColumn, setLossColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
@@ -123,6 +143,9 @@ export default function Triangles() {
       setDateColumns(dateCols);
       setOriginColumn(dateCols[0] ?? '');
       setDevelopmentColumn(dateCols[0] ?? '');
+      const numericCols = getNumericColumns(parsed);
+      setNumericColumns(numericCols);
+      setLossColumn(numericCols[0] ?? '');
       setUploadedFile(file);
       message.success('Data loaded');
     } catch (e: unknown) {
@@ -135,7 +158,12 @@ export default function Triangles() {
 
   React.useEffect(() => {
     const compute = async () => {
-      if (!originColumn || rows.length === 0 || !rows[0]?.['paid']) {
+      if (
+        !originColumn ||
+        rows.length === 0 ||
+        !lossColumn ||
+        typeof rows[0]?.[lossColumn] !== 'number'
+      ) {
         setAySum([]);
         return;
       }
@@ -144,7 +172,7 @@ export default function Triangles() {
           const form = new FormData();
           form.append('file', uploadedFile);
           form.append('ay_col', originColumn);
-          form.append('value_col', 'paid');
+          form.append('value_col', lossColumn);
           const res = await fetch(`${API}/summary/ay-sum`, {
             method: 'POST',
             body: form,
@@ -171,15 +199,15 @@ export default function Triangles() {
       const map = new Map<number | string, number>();
       rows.forEach((r) => {
         const ay = String(r[originColumn]);
-        const paid = Number(r['paid']);
-        if (!Number.isNaN(paid) && ay) {
-          map.set(ay, (map.get(ay) ?? 0) + paid);
+        const value = Number(r[lossColumn]);
+        if (!Number.isNaN(value) && ay) {
+          map.set(ay, (map.get(ay) ?? 0) + value);
         }
       });
       setAySum(Array.from(map, ([origin, sum]) => ({ origin, sum })));
     };
     compute();
-  }, [originColumn, rows, uploadedFile]);
+  }, [originColumn, lossColumn, rows, uploadedFile]);
 
   return (
     <div style={{ padding: 16 }}>
@@ -255,6 +283,23 @@ export default function Triangles() {
               options={dateColumns.map((c) => ({ value: c, label: c }))}
               disabled={dateColumns.length === 0}
             />
+            <Title
+              level={4}
+              id="loss-field-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Loss Field
+            </Title>
+            <Select
+              id="loss-field-select"
+              aria-labelledby="loss-field-heading"
+              style={{ width: '100%' }}
+              placeholder="Select loss column"
+              value={lossColumn || undefined}
+              onChange={(v) => setLossColumn(v)}
+              options={numericColumns.map((c) => ({ value: c, label: c }))}
+              disabled={numericColumns.length === 0}
+            />
           </Space>
         </Sider>
         <Content>
@@ -282,7 +327,9 @@ export default function Triangles() {
 
                         {aySum.length > 0 && (
                           <Table
-                            title={() => `Sum by ${originColumn}`}
+                            title={() =>
+                              `Sum of ${lossColumn} by ${originColumn}`
+                            }
                             style={{ marginTop: 16 }}
                             size="small"
                             pagination={false}
@@ -290,7 +337,7 @@ export default function Triangles() {
                             columns={[
                               { title: originColumn, dataIndex: 'origin' },
                               {
-                                title: 'Sum (paid)',
+                                title: `Sum (${lossColumn})`,
                                 dataIndex: 'sum',
                                 render: (v: number) => v.toLocaleString(),
                               },
