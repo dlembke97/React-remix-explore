@@ -245,6 +245,10 @@ export default function Triangles() {
         setTriangleRows(data);
         if (data.length > 0) {
           const headers = Object.keys(data[0]);
+          if (originColumn && headers.includes(originColumn)) {
+            headers.splice(headers.indexOf(originColumn), 1);
+            headers.unshift(originColumn);
+          }
           setTriangleColumns(
             headers.map((h) => ({ title: h, dataIndex: h, key: h })),
           );
