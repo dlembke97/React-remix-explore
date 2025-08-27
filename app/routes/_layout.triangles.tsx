@@ -92,6 +92,7 @@ export default function Triangles() {
   const [uploading, setUploading] = React.useState(false);
   const [dateColumns, setDateColumns] = React.useState<string[]>([]);
   const [originColumn, setOriginColumn] = React.useState('');
+  const [developmentColumn, setDevelopmentColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
@@ -121,6 +122,7 @@ export default function Triangles() {
       const dateCols = getDateLikeColumns(parsed);
       setDateColumns(dateCols);
       setOriginColumn(dateCols[0] ?? '');
+      setDevelopmentColumn(dateCols[0] ?? '');
       setUploadedFile(file);
       message.success('Data loaded');
     } catch (e: unknown) {
@@ -233,6 +235,23 @@ export default function Triangles() {
               placeholder="Select origin column"
               value={originColumn || undefined}
               onChange={(v) => setOriginColumn(v)}
+              options={dateColumns.map((c) => ({ value: c, label: c }))}
+              disabled={dateColumns.length === 0}
+            />
+            <Title
+              level={4}
+              id="development-date-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Development Date
+            </Title>
+            <Select
+              id="development-date-select"
+              aria-labelledby="development-date-heading"
+              style={{ width: '100%' }}
+              placeholder="Select development column"
+              value={developmentColumn || undefined}
+              onChange={(v) => setDevelopmentColumn(v)}
               options={dateColumns.map((c) => ({ value: c, label: c }))}
               disabled={dateColumns.length === 0}
             />
