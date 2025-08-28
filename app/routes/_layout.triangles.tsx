@@ -15,7 +15,7 @@ import {
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
 import {
-  CsvRow,
+  type CsvRow,
   parseTrianglesCsv,
   getDateLikeColumns,
   getNumericColumns,
