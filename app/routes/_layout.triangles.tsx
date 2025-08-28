@@ -88,7 +88,8 @@ export default function Triangles() {
       const dateCols = getDateLikeColumns(parsed);
       setDateColumns(dateCols);
       const defaultOrigin = dateCols[0] ?? '';
-      const defaultDevelopment = dateCols.find((c) => c !== defaultOrigin) ?? '';
+      const defaultDevelopment =
+        dateCols.find((c) => c !== defaultOrigin) ?? '';
       setOriginColumn(defaultOrigin);
       setDevelopmentColumn(defaultDevelopment);
       const numericCols = getNumericColumns(parsed).filter(
