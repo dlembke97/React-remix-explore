@@ -14,7 +14,8 @@ vi.mock('react-router', () => ({
 }));
 
 import { MemoryRouter } from 'react-router';
-import TrianglesPage, { parseTrianglesCsv } from '../_layout.triangles';
+import TrianglesPage from '../_layout.triangles';
+import { parseTrianglesCsv } from '../../utils/csv';
 
 describe('Triangles', () => {
   it('renders Triangles page header', () => {

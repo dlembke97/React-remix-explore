@@ -14,8 +14,13 @@ import {
 } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
-
-export type CsvRow = Record<string, string | number>;
+import {
+  CsvRow,
+  parseTrianglesCsv,
+  getDateLikeColumns,
+  getNumericColumns,
+  getCategoricalColumns,
+} from '../utils/csv';
 
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
@@ -30,75 +35,6 @@ export const meta = () => [{ title: 'Triangles' }];
 export function loader() {
   return Response.json({ triangles: [] });
 }
-
-export const parseTrianglesCsv = (text: string): CsvRow[] => {
-  const [headerLine, ...lines] = text.trim().split(/\r?\n/);
-  const headers = headerLine.split(',').map((h) => h.trim());
-
-  return lines.filter(Boolean).map((line) => {
-    const cols = line.split(',').map((c) => c.trim());
-    const row: CsvRow = {};
-    headers.forEach((h, i) => {
-      const value = cols[i] ?? '';
-      const num = Number(value);
-      row[h] = value === '' || Number.isNaN(num) ? value : num;
-    });
-    return row;
-  });
-};
-
-const isDateLike = (value: unknown): boolean => {
-  if (typeof value === 'number') {
-    return Number.isInteger(value) && value >= 1950 && value <= 2030;
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') return false;
-    if (/^\d{4}$/.test(trimmed)) {
-      const year = Number(trimmed);
-      return year >= 1950 && year <= 2030;
-    }
-    const timestamp = Date.parse(trimmed);
-    if (!Number.isNaN(timestamp)) {
-      const year = new Date(timestamp).getFullYear();
-      return year >= 1950 && year <= 2030;
-    }
-  }
-  return false;
-};
-
-const getDateLikeColumns = (data: CsvRow[]): string[] => {
-  if (data.length === 0) return [];
-  const headers = Object.keys(data[0]);
-  return headers.filter((h) => {
-    let hasValue = false;
-    const allValid = data.every((row) => {
-      const value = row[h];
-      if (value === '' || value === null || value === undefined) return true;
-      hasValue = true;
-      return isDateLike(value);
-    });
-    return allValid && hasValue;
-  });
-};
-
-const getNumericColumns = (data: CsvRow[]): string[] => {
-  if (data.length === 0) return [];
-  const headers = Object.keys(data[0]);
-  return headers.filter((h) => {
-    let hasValue = false;
-    const allNumeric = data.every((row) => {
-      const value = row[h];
-      if (value === '' || value === null || value === undefined) return true;
-      if (typeof value === 'number') {
-        hasValue = true;
-        return true;
-      }
-      return false;
-    });
-    return allNumeric && hasValue;
-  });
-};
 
 export default function Triangles() {
   const { triangles: initialTriangles } = useLoaderData<typeof loader>();
@@ -158,9 +94,7 @@ export default function Triangles() {
       );
       setNumericColumns(numericCols);
       setLossColumn(numericCols[0] ?? '');
-      const catCols = headers.filter(
-        (h) => !dateCols.includes(h) && !numericCols.includes(h),
-      );
+      const catCols = getCategoricalColumns(parsed, dateCols, numericCols);
       setCategoricalColumns(catCols);
       setCategoryColumn('');
       setUploadedFile(file);
