@@ -60,6 +60,10 @@ export default function Triangles() {
   const [triangleColumns, setTriangleColumns] = React.useState<
     ColumnsType<CsvRow>
   >([]);
+  const [ldfTriangles, setLdfTriangles] = React.useState<
+    Record<string, CsvRow[]>
+  >({});
+  const [ldfColumns, setLdfColumns] = React.useState<ColumnsType<CsvRow>>([]);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
 
@@ -174,6 +178,8 @@ export default function Triangles() {
       ) {
         setTriangles({});
         setTriangleColumns([]);
+        setLdfTriangles({});
+        setLdfColumns([]);
         return;
       }
       try {
@@ -207,10 +213,29 @@ export default function Triangles() {
         } else {
           setTriangleColumns([]);
         }
+
+        // LDF triangles if provided by backend
+        const ldfReturned: Record<string, CsvRow[]> = json.ldf_triangles || {};
+        setLdfTriangles(ldfReturned);
+        const ldfFirst = Object.values(ldfReturned)[0] ?? [];
+        if (ldfFirst.length > 0) {
+          const ldfHeaders = Object.keys(ldfFirst[0]);
+          if (originColumn && ldfHeaders.includes(originColumn)) {
+            ldfHeaders.splice(ldfHeaders.indexOf(originColumn), 1);
+            ldfHeaders.unshift(originColumn);
+          }
+          setLdfColumns(
+            ldfHeaders.map((h) => ({ title: h, dataIndex: h, key: h })),
+          );
+        } else {
+          setLdfColumns([]);
+        }
       } catch (err) {
         console.error(err);
         setTriangles({});
         setTriangleColumns([]);
+        setLdfTriangles({});
+        setLdfColumns([]);
       }
     };
     buildTriangle();
@@ -397,6 +422,30 @@ export default function Triangles() {
                         key={key}
                         title={() => key}
                         columns={triangleColumns}
+                        dataSource={data}
+                        rowKey={(_, i) => String(i)}
+                        pagination={{ pageSize: 20 }}
+                        sticky
+                        scroll={{ x: 'max-content', y: 600 }}
+                      />
+                    ))}
+                  </Space>
+                ),
+              },
+              {
+                key: 'ldf',
+                label: 'LDF Selection',
+                children: (
+                  <Space
+                    direction="vertical"
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    {Object.entries(ldfTriangles).map(([key, data]) => (
+                      <Table
+                        key={key}
+                        title={() => `${key} — age_to_age factors`}
+                        columns={ldfColumns}
                         dataSource={data}
                         rowKey={(_, i) => String(i)}
                         pagination={{ pageSize: 20 }}
