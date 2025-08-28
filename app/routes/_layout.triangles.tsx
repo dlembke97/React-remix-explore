@@ -87,8 +87,10 @@ export default function Triangles() {
       setColumns(headers.map((h) => ({ title: h, dataIndex: h, key: h })));
       const dateCols = getDateLikeColumns(parsed);
       setDateColumns(dateCols);
-      setOriginColumn(dateCols[0] ?? '');
-      setDevelopmentColumn(dateCols[0] ?? '');
+      const defaultOrigin = dateCols[0] ?? '';
+      const defaultDevelopment = dateCols.find((c) => c !== defaultOrigin) ?? '';
+      setOriginColumn(defaultOrigin);
+      setDevelopmentColumn(defaultDevelopment);
       const numericCols = getNumericColumns(parsed).filter(
         (c) => !dateCols.includes(c),
       );
@@ -290,7 +292,9 @@ export default function Triangles() {
               placeholder="Select development column"
               value={developmentColumn || undefined}
               onChange={(v) => setDevelopmentColumn(v)}
-              options={dateColumns.map((c) => ({ value: c, label: c }))}
+              options={dateColumns
+                .filter((c) => c !== originColumn)
+                .map((c) => ({ value: c, label: c }))}
               disabled={dateColumns.length === 0}
             />
             <Title
