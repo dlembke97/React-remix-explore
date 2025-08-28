@@ -14,6 +14,7 @@ import {
 } from 'antd';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import PageHeader from '../components/PageHeader';
+import TriangleDisplay from '../components/TriangleDisplay';
 import {
   type CsvRow,
   parseTrianglesCsv,
@@ -21,6 +22,11 @@ import {
   getNumericColumns,
   getCategoricalColumns,
 } from '../utils/csv';
+import {
+  buildTriangles,
+  buildColumns,
+  type TriangleMap,
+} from '../utils/triangle';
 
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
@@ -54,15 +60,11 @@ export default function Triangles() {
   );
   const [categoryColumn, setCategoryColumn] = React.useState('');
   const [uploadedFile, setUploadedFile] = React.useState<File | null>(null);
-  const [triangles, setTriangles] = React.useState<Record<string, CsvRow[]>>(
-    {},
-  );
+  const [triangles, setTriangles] = React.useState<TriangleMap>({});
   const [triangleColumns, setTriangleColumns] = React.useState<
     ColumnsType<CsvRow>
   >([]);
-  const [ldfTriangles, setLdfTriangles] = React.useState<
-    Record<string, CsvRow[]>
-  >({});
+  const [ldfTriangles, setLdfTriangles] = React.useState<TriangleMap>({});
   const [ldfColumns, setLdfColumns] = React.useState<ColumnsType<CsvRow>>([]);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
@@ -168,7 +170,7 @@ export default function Triangles() {
   }, [originColumn, lossColumn, rows, uploadedFile]);
 
   React.useEffect(() => {
-    const buildTriangle = async () => {
+    const build = async () => {
       if (
         !originColumn ||
         !developmentColumn ||
@@ -183,53 +185,23 @@ export default function Triangles() {
         return;
       }
       try {
-        const form = new FormData();
-        form.append('file', uploadedFile);
-        form.append('origin_col', originColumn);
-        form.append('development_col', developmentColumn);
-        form.append('value_col', lossColumn);
-        if (categoryColumn) {
-          form.append('category_col', categoryColumn);
-        }
-        const res = await fetch(`${API}/triangle`, {
-          method: 'POST',
-          body: form,
-        });
-        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || 'Unknown backend error');
-        const returned: Record<string, CsvRow[]> = json.triangles || {};
-        setTriangles(returned);
-        const first = Object.values(returned)[0] ?? [];
-        if (first.length > 0) {
-          const headers = Object.keys(first[0]);
-          if (originColumn && headers.includes(originColumn)) {
-            headers.splice(headers.indexOf(originColumn), 1);
-            headers.unshift(originColumn);
-          }
-          setTriangleColumns(
-            headers.map((h) => ({ title: h, dataIndex: h, key: h })),
-          );
-        } else {
-          setTriangleColumns([]);
-        }
+        const { triangles: tri, ldfTriangles: ldf } = await buildTriangles(
+          API,
+          uploadedFile,
+          {
+            originCol: originColumn,
+            developmentCol: developmentColumn,
+            valueCol: lossColumn,
+            categoryCol: categoryColumn || undefined,
+          },
+        );
+        setTriangles(tri);
+        const first = Object.values(tri)[0] ?? [];
+        setTriangleColumns(buildColumns(first, originColumn));
 
-        // LDF triangles if provided by backend
-        const ldfReturned: Record<string, CsvRow[]> = json.ldf_triangles || {};
-        setLdfTriangles(ldfReturned);
-        const ldfFirst = Object.values(ldfReturned)[0] ?? [];
-        if (ldfFirst.length > 0) {
-          const ldfHeaders = Object.keys(ldfFirst[0]);
-          if (originColumn && ldfHeaders.includes(originColumn)) {
-            ldfHeaders.splice(ldfHeaders.indexOf(originColumn), 1);
-            ldfHeaders.unshift(originColumn);
-          }
-          setLdfColumns(
-            ldfHeaders.map((h) => ({ title: h, dataIndex: h, key: h })),
-          );
-        } else {
-          setLdfColumns([]);
-        }
+        setLdfTriangles(ldf);
+        const ldfFirst = Object.values(ldf)[0] ?? [];
+        setLdfColumns(buildColumns(ldfFirst, originColumn));
       } catch (err) {
         console.error(err);
         setTriangles({});
@@ -238,7 +210,7 @@ export default function Triangles() {
         setLdfColumns([]);
       }
     };
-    buildTriangle();
+    build();
   }, [
     originColumn,
     developmentColumn,
@@ -412,48 +384,21 @@ export default function Triangles() {
                 key: 'triangle',
                 label: 'Triangle',
                 children: (
-                  <Space
-                    direction="vertical"
-                    size="large"
-                    style={{ width: '100%' }}
-                  >
-                    {Object.entries(triangles).map(([key, data]) => (
-                      <Table
-                        key={key}
-                        title={() => key}
-                        columns={triangleColumns}
-                        dataSource={data}
-                        rowKey={(_, i) => String(i)}
-                        pagination={{ pageSize: 20 }}
-                        sticky
-                        scroll={{ x: 'max-content', y: 600 }}
-                      />
-                    ))}
-                  </Space>
+                  <TriangleDisplay
+                    triangles={triangles}
+                    columns={triangleColumns}
+                  />
                 ),
               },
               {
                 key: 'ldf',
                 label: 'LDF Selection',
                 children: (
-                  <Space
-                    direction="vertical"
-                    size="large"
-                    style={{ width: '100%' }}
-                  >
-                    {Object.entries(ldfTriangles).map(([key, data]) => (
-                      <Table
-                        key={key}
-                        title={() => `${key} — age_to_age factors`}
-                        columns={ldfColumns}
-                        dataSource={data}
-                        rowKey={(_, i) => String(i)}
-                        pagination={{ pageSize: 20 }}
-                        sticky
-                        scroll={{ x: 'max-content', y: 600 }}
-                      />
-                    ))}
-                  </Space>
+                  <TriangleDisplay
+                    triangles={ldfTriangles}
+                    columns={ldfColumns}
+                    titleSuffix="— age_to_age factors"
+                  />
                 ),
               },
             ]}
