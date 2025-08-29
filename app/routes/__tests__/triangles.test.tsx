@@ -25,13 +25,19 @@ describe('Triangles', () => {
       </MemoryRouter>,
     );
     expect(
-      screen.getByRole('heading', { name: /Triangles/i }),
+      screen.getByRole('heading', { name: 'Triangles' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /Origin Date/i }),
+      screen.getByRole('heading', { name: 'Origin Date' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /Development Date/i }),
+      screen.getByRole('heading', { name: 'Development Date' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Origin Date Aggregation' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Development Date Aggregation' }),
     ).toBeInTheDocument();
   });
 
