@@ -5,6 +5,9 @@
  */
 export type CsvRow = Record<string, string | number>;
 
+export const aggregationLevels = ['yearly', 'quarterly', 'monthly'] as const;
+export type AggregationLevel = (typeof aggregationLevels)[number];
+
 /**
  * Parse raw CSV text into an array of {@link CsvRow} objects.
  *
@@ -102,4 +105,31 @@ export const getCategoricalColumns = (
   return headers.filter(
     (h) => !dateColumns.includes(h) && !numericColumns.includes(h),
   );
+};
+
+/**
+ * Determine which aggregation levels are supported by a date column.
+ *
+ * Columns containing only year values support yearly aggregation. Columns with
+ * full dates (anything beyond a bare year) can also be aggregated quarterly or
+ * monthly.
+ */
+export const getDateAggregationOptions = (
+  data: CsvRow[],
+  column: string,
+): AggregationLevel[] => {
+  if (!column) return [...aggregationLevels];
+  const values = data
+    .map((r) => r[column])
+    .filter((v) => v !== '' && v !== null && v !== undefined);
+  const hasFullDate = values.some((value) => {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed === '') return false;
+      if (/^\d{4}$/.test(trimmed)) return false;
+      return !Number.isNaN(Date.parse(trimmed));
+    }
+    return false;
+  });
+  return hasFullDate ? [...aggregationLevels] : ['yearly'];
 };

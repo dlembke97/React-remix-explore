@@ -21,14 +21,15 @@ import {
   getDateLikeColumns,
   getNumericColumns,
   getCategoricalColumns,
+  getDateAggregationOptions,
+  aggregationLevels,
+  type AggregationLevel,
 } from '../utils/csv';
 import {
   buildTriangles,
   buildColumns,
   type TriangleMap,
 } from '../utils/triangle';
-
-const aggregationLevels = ['yearly', 'quarterly', 'monthly'] as const;
 
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
@@ -55,11 +56,16 @@ export default function Triangles() {
   const [dateColumns, setDateColumns] = React.useState<string[]>([]);
   const [originColumn, setOriginColumn] = React.useState('');
   const [developmentColumn, setDevelopmentColumn] = React.useState('');
-  type AggregationLevel = (typeof aggregationLevels)[number];
   const [originAggregation, setOriginAggregation] =
     React.useState<AggregationLevel>('yearly');
   const [developmentAggregation, setDevelopmentAggregation] =
     React.useState<AggregationLevel>('yearly');
+  const [originAggOptions, setOriginAggOptions] = React.useState<
+    AggregationLevel[]
+  >([...aggregationLevels]);
+  const [developmentAggOptions, setDevelopmentAggOptions] = React.useState<
+    AggregationLevel[]
+  >([...aggregationLevels]);
   const [numericColumns, setNumericColumns] = React.useState<string[]>([]);
   const [lossColumn, setLossColumn] = React.useState('');
   const [categoricalColumns, setCategoricalColumns] = React.useState<string[]>(
@@ -195,15 +201,32 @@ export default function Triangles() {
     };
     compute();
   }, [originColumn, lossColumn, rows, uploadedFile]);
+  React.useEffect(() => {
+    const levels = getDateAggregationOptions(rows, originColumn);
+    setOriginAggOptions(levels);
+    if (!levels.includes(originAggregation)) {
+      setOriginAggregation(levels[0] ?? 'yearly');
+    }
+  }, [rows, originColumn, originAggregation]);
 
   React.useEffect(() => {
-    if (
-      aggregationLevels.indexOf(developmentAggregation) <
-      aggregationLevels.indexOf(originAggregation)
-    ) {
-      setDevelopmentAggregation(originAggregation);
+    const levels = getDateAggregationOptions(rows, developmentColumn);
+    setDevelopmentAggOptions(levels);
+    if (!levels.includes(developmentAggregation)) {
+      setDevelopmentAggregation(levels[0] ?? 'yearly');
     }
-  }, [originAggregation, developmentAggregation]);
+  }, [rows, developmentColumn, developmentAggregation]);
+
+  React.useEffect(() => {
+    const allowed = developmentAggOptions.filter(
+      (g) =>
+        aggregationLevels.indexOf(g) >=
+        aggregationLevels.indexOf(originAggregation),
+    );
+    if (!allowed.includes(developmentAggregation)) {
+      setDevelopmentAggregation(allowed[0] ?? originAggregation);
+    }
+  }, [originAggregation, developmentAggOptions, developmentAggregation]);
 
   React.useEffect(() => {
     const build = async () => {
@@ -349,7 +372,7 @@ export default function Triangles() {
               style={{ width: '100%' }}
               value={originAggregation}
               onChange={(v) => setOriginAggregation(v as AggregationLevel)}
-              options={aggregationLevels.map((g) => ({ value: g, label: g }))}
+              options={originAggOptions.map((g) => ({ value: g, label: g }))}
             />
             <Title
               level={4}
@@ -383,7 +406,7 @@ export default function Triangles() {
               style={{ width: '100%' }}
               value={developmentAggregation}
               onChange={(v) => setDevelopmentAggregation(v as AggregationLevel)}
-              options={aggregationLevels
+              options={developmentAggOptions
                 .filter(
                   (g) =>
                     aggregationLevels.indexOf(g) >=
