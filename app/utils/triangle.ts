@@ -14,6 +14,8 @@ export interface BuildTriangleOptions {
 export interface BuiltTriangles {
   triangles: TriangleMap;
   ldfTriangles: TriangleMap;
+  ldfTables: TriangleMap;
+  cdfTables: TriangleMap;
 }
 
 /**
@@ -42,6 +44,8 @@ export async function buildTriangles(
   return {
     triangles: json.triangles || {},
     ldfTriangles: json.ldf_triangles || {},
+    ldfTables: json.ldf_tables || {},
+    cdfTables: json.cdf_tables || {},
   };
 }
 
