@@ -72,6 +72,20 @@ export default function Triangles() {
   >([]);
   const [cdfTables, setCdfTables] = React.useState<TriangleMap>({});
   const [cdfColumns, setCdfColumns] = React.useState<ColumnsType<CsvRow>>([]);
+  const handleCdfChange = React.useCallback(
+    (triKey: string, col: string, value: number) => {
+      setCdfTables((prev) => {
+        const next = { ...prev };
+        const rows = next[triKey];
+        if (!rows) return prev;
+        next[triKey] = rows.map((r) =>
+          r.type === 'Selected CDF' ? { ...r, [col]: value } : r,
+        );
+        return next;
+      });
+    },
+    [],
+  );
   const { Sider, Content } = Layout;
   const { Title } = Typography;
 
@@ -218,8 +232,15 @@ export default function Triangles() {
         const ldfTabFirst = Object.values(ldfTab)[0] ?? [];
         setLdfTableColumns(buildColumns(ldfTabFirst, 'type'));
 
-        setCdfTables(cdfTab);
-        const cdfFirst = Object.values(cdfTab)[0] ?? [];
+        const cdfWithSelected = Object.fromEntries(
+          Object.entries(cdfTab).map(([k, rows]) => {
+            const vol =
+              rows.find((r: CsvRow) => r.type === 'Volume Weighted') ?? rows[0];
+            return [k, [...rows, { ...vol, type: 'Selected CDF' }]];
+          }),
+        );
+        setCdfTables(cdfWithSelected);
+        const cdfFirst = Object.values(cdfWithSelected)[0] ?? [];
         setCdfColumns(buildColumns(cdfFirst, 'type'));
       } catch (err) {
         console.error(err);
@@ -425,6 +446,7 @@ export default function Triangles() {
                     ldfColumns={ldfTableColumns}
                     cdfTables={cdfTables}
                     cdfColumns={cdfColumns}
+                    onCdfChange={handleCdfChange}
                   />
                 ),
               },
