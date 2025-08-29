@@ -66,6 +66,12 @@ export default function Triangles() {
   >([]);
   const [ldfTriangles, setLdfTriangles] = React.useState<TriangleMap>({});
   const [ldfColumns, setLdfColumns] = React.useState<ColumnsType<CsvRow>>([]);
+  const [ldfTables, setLdfTables] = React.useState<TriangleMap>({});
+  const [ldfTableColumns, setLdfTableColumns] = React.useState<
+    ColumnsType<CsvRow>
+  >([]);
+  const [cdfTables, setCdfTables] = React.useState<TriangleMap>({});
+  const [cdfColumns, setCdfColumns] = React.useState<ColumnsType<CsvRow>>([]);
   const { Sider, Content } = Layout;
   const { Title } = Typography;
 
@@ -182,19 +188,24 @@ export default function Triangles() {
         setTriangleColumns([]);
         setLdfTriangles({});
         setLdfColumns([]);
+        setLdfTables({});
+        setLdfTableColumns([]);
+        setCdfTables({});
+        setCdfColumns([]);
         return;
       }
       try {
-        const { triangles: tri, ldfTriangles: ldf } = await buildTriangles(
-          API,
-          uploadedFile,
-          {
-            originCol: originColumn,
-            developmentCol: developmentColumn,
-            valueCol: lossColumn,
-            categoryCol: categoryColumn || undefined,
-          },
-        );
+        const {
+          triangles: tri,
+          ldfTriangles: ldf,
+          ldfTables: ldfTab,
+          cdfTables: cdfTab,
+        } = await buildTriangles(API, uploadedFile, {
+          originCol: originColumn,
+          developmentCol: developmentColumn,
+          valueCol: lossColumn,
+          categoryCol: categoryColumn || undefined,
+        });
         setTriangles(tri);
         const first = Object.values(tri)[0] ?? [];
         setTriangleColumns(buildColumns(first, originColumn));
@@ -202,12 +213,24 @@ export default function Triangles() {
         setLdfTriangles(ldf);
         const ldfFirst = Object.values(ldf)[0] ?? [];
         setLdfColumns(buildColumns(ldfFirst, originColumn));
+
+        setLdfTables(ldfTab);
+        const ldfTabFirst = Object.values(ldfTab)[0] ?? [];
+        setLdfTableColumns(buildColumns(ldfTabFirst, 'type'));
+
+        setCdfTables(cdfTab);
+        const cdfFirst = Object.values(cdfTab)[0] ?? [];
+        setCdfColumns(buildColumns(cdfFirst, 'type'));
       } catch (err) {
         console.error(err);
         setTriangles({});
         setTriangleColumns([]);
         setLdfTriangles({});
         setLdfColumns([]);
+        setLdfTables({});
+        setLdfTableColumns([]);
+        setCdfTables({});
+        setCdfColumns([]);
       }
     };
     build();
@@ -398,6 +421,10 @@ export default function Triangles() {
                     triangles={ldfTriangles}
                     columns={ldfColumns}
                     titleSuffix="— age_to_age factors"
+                    ldfTables={ldfTables}
+                    ldfColumns={ldfTableColumns}
+                    cdfTables={cdfTables}
+                    cdfColumns={cdfColumns}
                   />
                 ),
               },

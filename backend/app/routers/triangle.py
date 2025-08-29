@@ -65,18 +65,56 @@ def _build_triangles(
                 )
         return df.to_dict(orient="records")
 
+    def pattern_to_record(pattern: cl.Triangle, label: str) -> Dict[str, Any]:
+        df = pattern.to_frame(origin_as_datetime=False).reset_index(drop=True)
+        rec: Dict[str, Any] = {"type": label}
+        for col in df.columns:
+            rec[str(col)] = float(df.iloc[0][col])
+        return rec
+
     out_tris: Dict[str, Any] = {}
     out_ldf: Dict[str, Any] = {}
+    out_ldf_table: Dict[str, Any] = {}
+    out_cdf_table: Dict[str, Any] = {}
     if category_col:
         categories = triangle.index[category_col].unique()
         for cat in categories:
-            out_tris[str(cat)] = frame_to_records(triangle.loc[cat])
-            out_ldf[str(cat)] = frame_to_records(ldf_triangle.loc[cat])
+            tri_cat = triangle.loc[cat]
+            ldf_cat = ldf_triangle.loc[cat]
+            out_tris[str(cat)] = frame_to_records(tri_cat)
+            out_ldf[str(cat)] = frame_to_records(ldf_cat)
+
+            dev_vol = cl.Development(average="volume").fit(tri_cat)
+            dev_simp = cl.Development(average="simple").fit(tri_cat)
+            out_ldf_table[str(cat)] = [
+                pattern_to_record(dev_vol.ldf_, "Volume Weighted"),
+                pattern_to_record(dev_simp.ldf_, "Simple Average"),
+            ]
+            out_cdf_table[str(cat)] = [
+                pattern_to_record(dev_vol.cdf_, "Volume Weighted"),
+                pattern_to_record(dev_simp.cdf_, "Simple Average"),
+            ]
     else:
         out_tris["Total"] = frame_to_records(triangle)
         out_ldf["Total"] = frame_to_records(ldf_triangle)
 
-    return {"triangles": out_tris, "ldf_triangles": out_ldf}
+        dev_vol = cl.Development(average="volume").fit(triangle)
+        dev_simp = cl.Development(average="simple").fit(triangle)
+        out_ldf_table["Total"] = [
+            pattern_to_record(dev_vol.ldf_, "Volume Weighted"),
+            pattern_to_record(dev_simp.ldf_, "Simple Average"),
+        ]
+        out_cdf_table["Total"] = [
+            pattern_to_record(dev_vol.cdf_, "Volume Weighted"),
+            pattern_to_record(dev_simp.cdf_, "Simple Average"),
+        ]
+
+    return {
+        "triangles": out_tris,
+        "ldf_triangles": out_ldf,
+        "ldf_tables": out_ldf_table,
+        "cdf_tables": out_cdf_table,
+    }
 
 
 @router.post("/triangle")

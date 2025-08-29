@@ -9,6 +9,10 @@ interface TriangleDisplayProps {
   columns: ColumnsType<CsvRow>;
   /** Optional text appended to each triangle title. */
   titleSuffix?: string;
+  ldfTables?: TriangleMap;
+  ldfColumns?: ColumnsType<CsvRow>;
+  cdfTables?: TriangleMap;
+  cdfColumns?: ColumnsType<CsvRow>;
 }
 
 /**
@@ -21,20 +25,50 @@ export default function TriangleDisplay({
   triangles,
   columns,
   titleSuffix,
+  ldfTables,
+  ldfColumns,
+  cdfTables,
+  cdfColumns,
 }: TriangleDisplayProps) {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       {Object.entries(triangles).map(([key, data]) => (
-        <Table
+        <Space
           key={key}
-          title={() => (titleSuffix ? `${key} ${titleSuffix}` : key)}
-          columns={columns}
-          dataSource={data}
-          rowKey={(_, i) => String(i)}
-          pagination={{ pageSize: 20 }}
-          sticky
-          scroll={{ x: 'max-content', y: 600 }}
-        />
+          direction="vertical"
+          size="large"
+          style={{ width: '100%' }}
+        >
+          <Table
+            title={() => (titleSuffix ? `${key} ${titleSuffix}` : key)}
+            columns={columns}
+            dataSource={data}
+            rowKey={(_, i) => String(i)}
+            pagination={{ pageSize: 20 }}
+            sticky
+            scroll={{ x: 'max-content', y: 600 }}
+          />
+          {ldfTables && ldfTables[key] && ldfColumns && (
+            <Table
+              title={() => `${key} LDF`}
+              columns={ldfColumns}
+              dataSource={ldfTables[key]}
+              rowKey={(_, i) => String(i)}
+              size="small"
+              pagination={false}
+            />
+          )}
+          {cdfTables && cdfTables[key] && cdfColumns && (
+            <Table
+              title={() => `${key} CDF`}
+              columns={cdfColumns}
+              dataSource={cdfTables[key]}
+              rowKey={(_, i) => String(i)}
+              size="small"
+              pagination={false}
+            />
+          )}
+        </Space>
       ))}
     </Space>
   );
