@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Space } from 'antd';
+import { Table, Space, InputNumber } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { CsvRow } from '../utils/csv';
 import type { TriangleMap } from '../utils/triangle';
@@ -13,6 +13,7 @@ interface TriangleDisplayProps {
   ldfColumns?: ColumnsType<CsvRow>;
   cdfTables?: TriangleMap;
   cdfColumns?: ColumnsType<CsvRow>;
+  onCdfChange?: (triKey: string, col: string, value: number) => void;
 }
 
 /**
@@ -29,6 +30,7 @@ export default function TriangleDisplay({
   ldfColumns,
   cdfTables,
   cdfColumns,
+  onCdfChange,
 }: TriangleDisplayProps) {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -61,7 +63,30 @@ export default function TriangleDisplay({
           {cdfTables && cdfTables[key] && cdfColumns && (
             <Table
               title={() => `${key} CDF`}
-              columns={cdfColumns}
+              columns={cdfColumns.map((col) =>
+                'dataIndex' in col && col.dataIndex !== 'type'
+                  ? {
+                      ...col,
+                      render: (value: number, record: CsvRow) =>
+                        record.type === 'Selected CDF' ? (
+                          <InputNumber
+                            value={value}
+                            min={0}
+                            step={0.01}
+                            onChange={(v) =>
+                              onCdfChange?.(
+                                key,
+                                String(col.dataIndex),
+                                Number(v),
+                              )
+                            }
+                          />
+                        ) : (
+                          value
+                        ),
+                    }
+                  : col,
+              )}
               dataSource={cdfTables[key]}
               rowKey={(_, i) => String(i)}
               size="small"
