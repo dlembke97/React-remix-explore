@@ -28,6 +28,8 @@ import {
   type TriangleMap,
 } from '../utils/triangle';
 
+const aggregationLevels = ['yearly', 'quarterly', 'monthly'] as const;
+
 // --- API base: baked env (Vite) with a safe runtime fallback for browsers ---
 const baked = import.meta.env.VITE_API_BASE_URL;
 const runtimeGuess =
@@ -53,6 +55,11 @@ export default function Triangles() {
   const [dateColumns, setDateColumns] = React.useState<string[]>([]);
   const [originColumn, setOriginColumn] = React.useState('');
   const [developmentColumn, setDevelopmentColumn] = React.useState('');
+  type AggregationLevel = (typeof aggregationLevels)[number];
+  const [originAggregation, setOriginAggregation] =
+    React.useState<AggregationLevel>('yearly');
+  const [developmentAggregation, setDevelopmentAggregation] =
+    React.useState<AggregationLevel>('yearly');
   const [numericColumns, setNumericColumns] = React.useState<string[]>([]);
   const [lossColumn, setLossColumn] = React.useState('');
   const [categoricalColumns, setCategoricalColumns] = React.useState<string[]>(
@@ -190,6 +197,15 @@ export default function Triangles() {
   }, [originColumn, lossColumn, rows, uploadedFile]);
 
   React.useEffect(() => {
+    if (
+      aggregationLevels.indexOf(developmentAggregation) <
+      aggregationLevels.indexOf(originAggregation)
+    ) {
+      setDevelopmentAggregation(originAggregation);
+    }
+  }, [originAggregation, developmentAggregation]);
+
+  React.useEffect(() => {
     const build = async () => {
       if (
         !originColumn ||
@@ -322,6 +338,21 @@ export default function Triangles() {
             />
             <Title
               level={4}
+              id="origin-aggregation-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Origin Date Aggregation
+            </Title>
+            <Select
+              id="origin-aggregation-select"
+              aria-labelledby="origin-aggregation-heading"
+              style={{ width: '100%' }}
+              value={originAggregation}
+              onChange={(v) => setOriginAggregation(v as AggregationLevel)}
+              options={aggregationLevels.map((g) => ({ value: g, label: g }))}
+            />
+            <Title
+              level={4}
               id="development-date-heading"
               style={{ margin: 0, color: '#000' }}
             >
@@ -338,6 +369,27 @@ export default function Triangles() {
                 .filter((c) => c !== originColumn)
                 .map((c) => ({ value: c, label: c }))}
               disabled={dateColumns.length === 0}
+            />
+            <Title
+              level={4}
+              id="development-aggregation-heading"
+              style={{ margin: 0, color: '#000' }}
+            >
+              Development Date Aggregation
+            </Title>
+            <Select
+              id="development-aggregation-select"
+              aria-labelledby="development-aggregation-heading"
+              style={{ width: '100%' }}
+              value={developmentAggregation}
+              onChange={(v) => setDevelopmentAggregation(v as AggregationLevel)}
+              options={aggregationLevels
+                .filter(
+                  (g) =>
+                    aggregationLevels.indexOf(g) >=
+                    aggregationLevels.indexOf(originAggregation),
+                )
+                .map((g) => ({ value: g, label: g }))}
             />
             <Title
               level={4}
