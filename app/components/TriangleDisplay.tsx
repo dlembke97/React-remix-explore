@@ -58,6 +58,7 @@ export default function TriangleDisplay({
               rowKey={(_, i) => String(i)}
               size="small"
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
           )}
           {cdfTables && cdfTables[key] && cdfColumns && (
@@ -91,6 +92,7 @@ export default function TriangleDisplay({
               rowKey={(_, i) => String(i)}
               size="small"
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
           )}
         </Space>
